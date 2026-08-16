@@ -78,10 +78,62 @@ git push origin main --tags
 
 ## 代码签名
 
-当前未配置签名证书：
+当前安装包**未做代码签名**。这是个人/开源桌面软件的常态，不影响功能，只影响首次安装时的系统提示。下面分「用户侧绕过」和「开发者侧根治」说明。
 
-- Windows：安装时会出现 SmartScreen「未知发布者」提示，点击“更多信息 → 仍要运行”即可。如需消除，购买 OV/EV 代码签名证书后在 Actions 中配置 `CSC_LINK`（base64 的 .pfx）与 `CSC_KEY_PASSWORD`。
-- macOS：未签名未公证，首次打开需右键 → 打开，或执行 `xattr -cr "/Applications/AI Account Manager.app"`。如需公证，配置 `CSC_LINK`、`CSC_KEY_PASSWORD`、`APPLE_ID`、`APPLE_APP_SPECIFIC_PASSWORD`、`APPLE_TEAM_ID` 并移除工作流中的 `CSC_IDENTITY_AUTO_DISCOVERY: false`。
+### 用户侧：现在就能用
+
+**Windows 10/11**
+
+1. 双击 `.exe` 出现 SmartScreen「Windows 已保护你的电脑」
+2. 点 **更多信息**
+3. 点 **仍要运行**
+4. 便携版（`.portable.exe`）同样操作；zip 解压后运行主程序也一样
+
+安装后 SmartScreen 通常不再弹（同一文件路径下）。
+
+**macOS**
+
+1. 首次打开：右键（或 Control+点击）应用 → **打开** → 确认
+2. 或终端清除隔离属性后正常双击：
+
+```bash
+xattr -cr "/Applications/AI Account Manager.app"
+```
+
+**Linux**：AppImage 首次 `chmod +x` 后直接运行；deb 用 `sudo dpkg -i` 安装即可，无额外签名要求。
+
+### 开发者侧：彻底消除警告（需付费证书）
+
+| 平台 | 需要什么 | 大致费用 | 效果 |
+|---|---|---|---|
+| Windows | OV 或 EV 代码签名证书（`.pfx`） | OV ~$200/年，EV ~$400+/年 | SmartScreen 不再拦；EV 可立即建立信誉 |
+| macOS | Apple Developer + Developer ID Application 证书 + 公证 | $99/年 | 双击直接打开，无「来自未知开发者」 |
+
+证书就绪后，在 GitHub 仓库 **Settings → Secrets and variables → Actions** 添加：
+
+| Secret | 用途 |
+|---|---|
+| `CSC_LINK` | base64 编码的 `.p12` / `.pfx` 证书文件 |
+| `CSC_KEY_PASSWORD` | 证书导出密码 |
+| `APPLE_ID` | macOS 公证用 Apple ID |
+| `APPLE_APP_SPECIFIC_PASSWORD` | [appleid.apple.com](https://appleid.apple.com) 生成的 App 专用密码 |
+| `APPLE_TEAM_ID` | Apple Developer Team ID |
+
+然后在 [`.github/workflows/release.yml`](../.github/workflows/release.yml) 的 Package 步骤里**删除** `CSC_IDENTITY_AUTO_DISCOVERY: false` 这一行，重新打 `v*` 标签发布即可自动签名 + macOS 公证。
+
+本地 Windows 签名示例（有 `.pfx` 时）：
+
+```powershell
+$env:CSC_LINK="C:\path\to\cert.pfx"
+$env:CSC_KEY_PASSWORD="your-password"
+npm run dist:win
+```
+
+### 为什么不默认签名
+
+- 代码签名证书需要实名购买与年度续费，无法为开源仓库内置
+- 未签名包功能与已签名包完全一致，仅首次运行多一步确认
+- GitHub Actions 已预留 Secret 接入点，你买到证书后 5 分钟可配好
 
 ## 打包体积与依赖
 
@@ -91,6 +143,6 @@ git push origin main --tags
 
 ## 更换图标
 
-1. 修改 `build/icon.svg`（或直接替换 `build/icon.png`，要求 1024×1024 PNG，带透明通道）。
-2. 若改的是 SVG，执行 `npm run make:icon` 重新栅格化生成 `build/icon.png`。
-3. 重新打包，electron-builder 会自动从 PNG 生成 Windows `.ico` 与 macOS `.icns`。
+1. 将新 logo 放到 `build/logo-source.png`（或任意路径）。
+2. 执行 `npm run make:logo`（或 `node scripts/process-logo.mjs <路径>`）生成 `build/icon.png`（1024×1024，紫色圆角底）。
+3. 重新打包：`npm run dist:win`。electron-builder 会自动生成 Windows `.ico` 与 macOS `.icns`。

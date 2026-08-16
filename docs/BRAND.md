@@ -1,8 +1,19 @@
 # 品牌与图标（Logo）
 
-## 现状
+## 当前图标
 
-当前图标为 `build/icon.svg` → `build/icon.png`（1024×1024）：紫色渐变圆角方块（squircle）+ 白色盾牌 + 紫色钥匙孔，右上角一个高光圆点。
+源文件：`build/logo-source.png`（用户提供的三人侧脸 + 飞鸟造型）
+
+应用图标：`build/icon.png`（1024×1024，紫色渐变圆角底 + 居中 logo）
+
+生成命令：
+
+```bash
+npm run make:logo
+# 或指定路径：node scripts/process-logo.mjs path/to/your-logo.png
+```
+
+旧版 SVG 盾牌图标仍保留在 `build/icon.svg`，可用 `npm run make:icon` 回退渲染。
 
 主色板：
 

@@ -31,7 +31,7 @@
 
 运行前置条件：本机已安装 **Google Chrome**（自动化功能依赖它，应用本身不内置 Chromium）。
 
-安装包未做代码签名：Windows 出现 SmartScreen 提示时选择“更多信息 → 仍要运行”；macOS 首次打开请右键 → 打开。自行打包与发布流程见 [`docs/RELEASE.md`](docs/RELEASE.md)。
+安装包未做代码签名：Windows 出现 SmartScreen 时选「更多信息 → 仍要运行」；macOS 首次请右键 → 打开，或执行 `xattr -cr "/Applications/AI Account Manager.app"`。开发者购买证书后的配置方法见 [`docs/RELEASE.md`](docs/RELEASE.md#代码签名)。
 
 ## 🧱 技术栈
 

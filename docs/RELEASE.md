@@ -12,8 +12,10 @@
 | Windows | x64 | 压缩包 | `AI-Account-Manager-<ver>-win-x64.zip` | 解压即用，便于绿色分发 |
 | macOS | x64 / arm64 | DMG | `AI-Account-Manager-<ver>-mac-<arch>.dmg` | Intel / Apple Silicon 分开下载 |
 | macOS | x64 / arm64 | ZIP | `AI-Account-Manager-<ver>-mac-<arch>.zip` | 自动更新与手动安装用 |
-| Linux | x64 | AppImage | `AI-Account-Manager-<ver>-linux-x64.AppImage` | 免安装，`chmod +x` 后直接运行 |
-| Linux | x64 | deb / tar.gz | `AI-Account-Manager-<ver>-linux-x64.deb` 等 | Debian/Ubuntu 系与通用压缩包 |
+| Linux | x64 | AppImage | `AI-Account-Manager-<ver>-linux-x86_64.AppImage` | 免安装，`chmod +x` 后直接运行 |
+| Linux | x64 | deb / tar.gz | `AI-Account-Manager-<ver>-linux-amd64.deb`、`...-linux-x64.tar.gz` | Debian/Ubuntu 系与通用压缩包 |
+
+> deb 与 AppImage 沿用各自生态的架构命名（`amd64` / `x86_64`），与 `artifactName` 里的 `${arch}` 不一致属正常现象。
 
 > 注意 1：electron-builder **不能跨平台交叉编译 macOS**。本地只能打当前系统的包，三平台完整产物请走下面的 GitHub Actions 流程。
 >

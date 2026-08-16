@@ -27,7 +27,7 @@
 | Windows on ARM | `...-win-arm64-setup.exe` | — |
 | macOS (Apple Silicon) | `...-mac-arm64.dmg` | `...-mac-arm64.zip` |
 | macOS (Intel) | `...-mac-x64.dmg` | `...-mac-x64.zip` |
-| Linux (x64) | `...-linux-x64.AppImage` | `...-linux-x64.deb`、`...-linux-x64.tar.gz` |
+| Linux (x64) | `...-linux-x86_64.AppImage` | `...-linux-amd64.deb`、`...-linux-x64.tar.gz` |
 
 运行前置条件：本机已安装 **Google Chrome**（自动化功能依赖它，应用本身不内置 Chromium）。
 

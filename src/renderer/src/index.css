@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 245 75% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 222 47% 20%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 245 60% 95%;
+    --accent-foreground: 245 75% 40%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 62% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --border: 220 13% 88%;
+    --input: 220 13% 85%;
+    --ring: 245 75% 60%;
+    --radius: 0.6rem;
+  }
+
+  .dark {
+    --background: 222 30% 7%;
+    --foreground: 210 40% 96%;
+    --card: 222 26% 10%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 26% 9%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 250 85% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 20% 16%;
+    --secondary-foreground: 210 40% 92%;
+    --muted: 222 18% 15%;
+    --muted-foreground: 217 15% 62%;
+    --accent: 250 40% 22%;
+    --accent-foreground: 250 90% 88%;
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 55% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 20 30% 10%;
+    --border: 222 18% 20%;
+    --input: 222 18% 22%;
+    --ring: 250 85% 66%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+  }
+
+  .dark body {
+    background-image: radial-gradient(
+        1200px 600px at 100% -10%,
+        hsl(250 85% 66% / 0.08),
+        transparent 60%
+      ),
+      radial-gradient(900px 500px at -10% 110%, hsl(200 85% 60% / 0.06), transparent 55%);
+  }
+}
+
+@layer utilities {
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+  .drag {
+    -webkit-app-region: drag;
+  }
+  .glass {
+    @apply bg-card/70 backdrop-blur-xl;
+  }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.28);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+  background-clip: content-box;
+}

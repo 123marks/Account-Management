@@ -1,0 +1,188 @@
+{
+  "name": "ai-account-manager",
+  "version": "0.1.0",
+  "description": "多平台账号安全管理与浏览器自动化工具 (Google / GitHub / X / YouTube) —— Electron + React + TypeScript + Playwright",
+  "author": "AI-AccountManager Contributors",
+  "license": "MIT",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "electron-vite preview",
+    "typecheck:node": "tsc -p tsconfig.node.json --noEmit",
+    "typecheck:web": "tsc -p tsconfig.web.json --noEmit",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "make:icon": "node scripts/make-icon.mjs",
+    "dist": "electron-vite build && electron-builder",
+    "dist:dir": "electron-vite build && electron-builder --dir",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:linux": "electron-vite build && electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.aiaccountmanager.app",
+    "productName": "AI Account Manager",
+    "copyright": "Copyright © 2026 AI-AccountManager Contributors",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "build/icon.png",
+      "package.json",
+      "node_modules/**/*",
+      "!node_modules/**/{test,tests,__tests__,example,examples,doc,docs,.github}/**",
+      "!node_modules/**/*.{md,map,flow}"
+    ],
+    "asarUnpack": [
+      "node_modules/playwright-core/**",
+      "node_modules/sql.js/**"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "123marks",
+        "repo": "Account-Management",
+        "releaseType": "release"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "artifactName": "AI-Account-Manager-${version}-win-${arch}.${ext}",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "buildUniversalInstaller": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "AI Account Manager",
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": [
+        "zh_CN",
+        "en_US"
+      ],
+      "artifactName": "AI-Account-Manager-${version}-win-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "AI-Account-Manager-${version}-win-${arch}-portable.${ext}"
+    },
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.utilities",
+      "artifactName": "AI-Account-Manager-${version}-mac-${arch}.${ext}",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Utility",
+      "maintainer": "AI-AccountManager Contributors",
+      "artifactName": "AI-Account-Manager-${version}-linux-${arch}.${ext}",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "tar.gz",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "jsqr": "^1.4.0",
+    "lucide-react": "^0.454.0",
+    "otpauth": "^9.3.6",
+    "playwright-core": "^1.48.2",
+    "qrcode": "^1.5.4",
+    "sonner": "^1.7.1",
+    "sql.js": "^1.12.0",
+    "tailwind-merge": "^2.6.0",
+    "zustand": "^4.5.7"
+  },
+  "devDependencies": {
+    "@radix-ui/react-checkbox": "^1.1.3",
+    "@radix-ui/react-dialog": "^1.1.4",
+    "@radix-ui/react-dropdown-menu": "^2.1.4",
+    "@radix-ui/react-label": "^2.1.1",
+    "@radix-ui/react-progress": "^1.1.1",
+    "@radix-ui/react-scroll-area": "^1.2.2",
+    "@radix-ui/react-select": "^2.1.4",
+    "@radix-ui/react-separator": "^1.1.1",
+    "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-switch": "^1.1.2",
+    "@radix-ui/react-tabs": "^1.1.2",
+    "@radix-ui/react-tooltip": "^1.1.6",
+    "@types/node": "^22.10.5",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@types/sql.js": "^1.4.9",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "postcss": "^8.4.49",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.7.3",
+    "vite": "^5.4.11"
+  }
+}

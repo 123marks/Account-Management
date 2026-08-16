@@ -25,12 +25,16 @@ jobs:
           - name: Windows (nsis / portable / zip)
             os: windows-latest
             args: --win
+            # 单独一次调用，避免多架构合并成一个巨型安装包
+            extra: --win nsis:arm64
           - name: macOS (dmg / zip · x64 + arm64)
             os: macos-latest
             args: --mac
+            extra: ''
           - name: Linux (AppImage / deb / tar.gz)
             os: ubuntu-latest
             args: --linux
+            extra: ''
 
     steps:
       - uses: actions/checkout@v4
@@ -55,6 +59,13 @@ jobs:
           # 未配置签名证书时跳过签名，避免 macOS 构建失败
           CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npx electron-builder ${{ matrix.args }} --publish ${{ startsWith(github.ref, 'refs/tags/v') && 'always' || 'never' }}
+
+      - name: Package (extra arch)
+        if: matrix.extra != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder ${{ matrix.extra }} --publish ${{ startsWith(github.ref, 'refs/tags/v') && 'always' || 'never' }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

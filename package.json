@@ -17,6 +17,7 @@
     "dist": "electron-vite build && electron-builder",
     "dist:dir": "electron-vite build && electron-builder --dir",
     "dist:win": "electron-vite build && electron-builder --win",
+    "dist:win:arm64": "electron-vite build && electron-builder --win nsis:arm64",
     "dist:mac": "electron-vite build && electron-builder --mac",
     "dist:linux": "electron-vite build && electron-builder --linux"
   },
@@ -55,8 +56,7 @@
         {
           "target": "nsis",
           "arch": [
-            "x64",
-            "arm64"
+            "x64"
           ]
         },
         {
@@ -75,7 +75,6 @@
     },
     "nsis": {
       "oneClick": false,
-      "buildUniversalInstaller": false,
       "perMachine": false,
       "allowElevation": true,
       "allowToChangeInstallationDirectory": true,

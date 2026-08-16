@@ -7,7 +7,7 @@
 | 平台 | 架构 | 格式 | 文件名 | 说明 |
 |---|---|---|---|---|
 | Windows | x64 | NSIS 安装包 | `AI-Account-Manager-<ver>-win-x64-setup.exe` | 可选安装目录、创建快捷方式，推荐 |
-| Windows | arm64 | NSIS 安装包 | `AI-Account-Manager-<ver>-win-arm64-setup.exe` | Surface / 骁龙 Windows 设备 |
+| Windows | arm64 | NSIS 安装包 | `AI-Account-Manager-<ver>-win-arm64-setup.exe` | Surface / 骁龙 Windows 设备，单独构建 |
 | Windows | x64 | 便携版 | `AI-Account-Manager-<ver>-win-x64-portable.exe` | 免安装，单文件运行 |
 | Windows | x64 | 压缩包 | `AI-Account-Manager-<ver>-win-x64.zip` | 解压即用，便于绿色分发 |
 | macOS | x64 / arm64 | DMG | `AI-Account-Manager-<ver>-mac-<arch>.dmg` | Intel / Apple Silicon 分开下载 |
@@ -15,13 +15,16 @@
 | Linux | x64 | AppImage | `AI-Account-Manager-<ver>-linux-x64.AppImage` | 免安装，`chmod +x` 后直接运行 |
 | Linux | x64 | deb / tar.gz | `AI-Account-Manager-<ver>-linux-x64.deb` 等 | Debian/Ubuntu 系与通用压缩包 |
 
-> 注意：electron-builder **不能跨平台交叉编译 macOS**。本地只能打当前系统的包，三平台完整产物请走下面的 GitHub Actions 流程。
+> 注意 1：electron-builder **不能跨平台交叉编译 macOS**。本地只能打当前系统的包，三平台完整产物请走下面的 GitHub Actions 流程。
+>
+> 注意 2：Windows 的 x64 与 arm64 安装包必须**分两次调用** electron-builder。若把两个架构写进同一个 nsis target，会额外产出一个把两份运行时塞在一起的 ~180 MB 合并安装包。
 
 ## 本地打包
 
 ```bash
 npm install
-npm run dist:win      # 仅 Windows 全部目标
+npm run dist:win        # Windows x64：安装版 + 便携版 + zip
+npm run dist:win:arm64  # Windows arm64 安装版（单独一次调用）
 npm run dist:mac      # 仅 macOS（需在 macOS 上执行）
 npm run dist:linux    # 仅 Linux
 npm run dist:dir      # 只解包不打包，用于快速验证（release/win-unpacked）

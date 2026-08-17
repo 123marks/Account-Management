@@ -190,6 +190,23 @@ const MIGRATIONS: Migration[] = [
       ALTER TABLE accounts ADD COLUMN mailbox_pass_enc TEXT;
       ALTER TABLE accounts ADD COLUMN mailbox_client_id TEXT;
     `
+  },
+  {
+    version: 13,
+    sql: `
+      CREATE TABLE mailbox_inboxes (
+        id TEXT PRIMARY KEY,
+        provider_id TEXT,
+        driver TEXT NOT NULL,
+        email TEXT NOT NULL,
+        token_enc TEXT,
+        source TEXT NOT NULL,
+        account_id TEXT,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX idx_mailbox_inboxes_created ON mailbox_inboxes(created_at DESC);
+      CREATE INDEX idx_mailbox_inboxes_email ON mailbox_inboxes(email);
+    `
   }
 ]
 

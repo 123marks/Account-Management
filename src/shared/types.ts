@@ -330,6 +330,9 @@ export interface Api {
     peekMails(providerId?: string): Promise<MailPreview[]>
     peekAccountInbox(accountId: string): Promise<MailPreview[]>
     useAccountAsMailbox(accountId: string): Promise<ProviderSetting>
+    listInboxes(): Promise<GeneratedInbox[]>
+    peekGeneratedInbox(id: string): Promise<MailPreview[]>
+    removeInbox(id: string): Promise<void>
   }
   totp: {
     get(id: string): Promise<TotpResult | null>
@@ -403,6 +406,17 @@ export interface Api {
     list(): Promise<SmsRental[]>
     services(country?: string): Promise<SmsServiceOption[]>
   }
+}
+
+export interface GeneratedInbox {
+  id: string
+  providerId: string
+  driver: string
+  email: string
+  source: 'test' | 'register'
+  accountId: string
+  createdAt: number
+  hasToken: boolean
 }
 
 export type UpdateStatus =

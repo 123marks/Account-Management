@@ -12,6 +12,7 @@ import { api } from '@renderer/lib/api'
 import { useProvidersStore } from '@renderer/store/providers'
 import { ProviderConfigDialog } from '@renderer/components/ProviderConfigDialog'
 import { SmsRentalsPanel } from '@renderer/components/SmsRentalsPanel'
+import { InboxHistoryPanel } from '@renderer/components/InboxHistoryPanel'
 import { MailPeekDialog } from '@renderer/components/MailPeekDialog'
 import { Card, CardContent } from '@renderer/components/ui/card'
 import { EmptyState } from '@renderer/components/ui/empty-state'
@@ -56,6 +57,8 @@ export default function Providers(): React.JSX.Element {
   })
   const [testingId, setTestingId] = useState<string | null>(null)
   const [peekId, setPeekId] = useState<string | null>(null)
+  const [inboxPeekId, setInboxPeekId] = useState<string | null>(null)
+  const [inboxTick, setInboxTick] = useState(0)
 
   useEffect(() => {
     void load()
@@ -90,8 +93,10 @@ export default function Providers(): React.JSX.Element {
     setTestingId(p.id)
     try {
       const r = await api.providers.test(p.id)
-      if (r.ok) toast.success(r.message)
-      else toast.error(r.message)
+      if (r.ok) {
+        toast.success(r.message)
+        setInboxTick((n) => n + 1)
+      } else toast.error(r.message)
     } finally {
       setTestingId(null)
     }
@@ -241,13 +246,20 @@ export default function Providers(): React.JSX.Element {
         </CardContent>
       </Card>
 
+      {tab === 'mailbox' && (
+        <InboxHistoryPanel refreshToken={inboxTick} onPeek={(id) => setInboxPeekId(id)} />
+      )}
       {tab === 'sms' && <SmsRentalsPanel />}
 
       <MailPeekDialog
-        open={!!peekId}
+        open={!!peekId || !!inboxPeekId}
         providerId={peekId ?? undefined}
+        generatedInboxId={inboxPeekId ?? undefined}
         onOpenChange={(v) => {
-          if (!v) setPeekId(null)
+          if (!v) {
+            setPeekId(null)
+            setInboxPeekId(null)
+          }
         }}
       />
       <ProviderConfigDialog

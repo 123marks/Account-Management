@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4
+
+- 服务中心记录测试/注册生成的临时邮箱，可复制、读信、删除
+- 邮箱注册平台与添加账号对齐：Google / GitHub / Microsoft / Apple / X / YouTube / Discord / OpenAI / Claude / Cursor / Windsurf
+
 ## 0.2.3
 
 - 接入 electron-updater：GitHub 打 tag 发版后，安装版会自动检查并提示更新

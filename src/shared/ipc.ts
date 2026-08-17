@@ -32,7 +32,10 @@ export const IPC = {
     test: 'providers:test',
     peekMails: 'providers:peek-mails',
     peekAccountInbox: 'providers:peek-account-inbox',
-    useAccountAsMailbox: 'providers:use-account-as-mailbox'
+    useAccountAsMailbox: 'providers:use-account-as-mailbox',
+    listInboxes: 'providers:list-inboxes',
+    peekGeneratedInbox: 'providers:peek-generated-inbox',
+    removeInbox: 'providers:remove-inbox'
   },
   totp: {
     get: 'totp:get',

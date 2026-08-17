@@ -41,8 +41,24 @@ export function actionsFor(platform: Platform): AutomationActionDescriptor[] {
   )
 }
 
+const PLATFORM_ORDER: Platform[] = [
+  'google',
+  'github',
+  'microsoft',
+  'apple',
+  'x',
+  'youtube',
+  'discord',
+  'openai',
+  'anthropic',
+  'cursor',
+  'windsurf',
+  'custom'
+]
+
 export function registerablePlatforms(): Platform[] {
-  return Array.from(new Set(ALL.filter((f) => f.action === 'register').map((f) => f.platform)))
+  const set = new Set(ALL.filter((f) => f.action === 'register').map((f) => f.platform))
+  return PLATFORM_ORDER.filter((p) => set.has(p))
 }
 
 export { oauthRegisterablePlatforms }

@@ -18,12 +18,14 @@ export function MailPeekDialog({
   open,
   onOpenChange,
   accountId,
-  providerId
+  providerId,
+  generatedInboxId
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   accountId?: string
   providerId?: string
+  generatedInboxId?: string
 }): React.JSX.Element {
   const [mails, setMails] = useState<MailPreview[]>([])
   const [busy, setBusy] = useState(false)
@@ -33,9 +35,11 @@ export function MailPeekDialog({
     setBusy(true)
     setError('')
     try {
-      const list = accountId
-        ? await api.providers.peekAccountInbox(accountId)
-        : await api.providers.peekMails(providerId)
+      const list = generatedInboxId
+        ? await api.providers.peekGeneratedInbox(generatedInboxId)
+        : accountId
+          ? await api.providers.peekAccountInbox(accountId)
+          : await api.providers.peekMails(providerId)
       setMails(list)
     } catch (e) {
       setMails([])
@@ -49,7 +53,7 @@ export function MailPeekDialog({
 
   useEffect(() => {
     if (open) void load()
-  }, [open, accountId, providerId])
+  }, [open, accountId, providerId, generatedInboxId])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

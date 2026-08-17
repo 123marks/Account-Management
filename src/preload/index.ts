@@ -36,7 +36,10 @@ const api: Api = {
     test: (id) => ipcRenderer.invoke(IPC.providers.test, id),
     peekMails: (providerId) => ipcRenderer.invoke(IPC.providers.peekMails, providerId),
     peekAccountInbox: (accountId) => ipcRenderer.invoke(IPC.providers.peekAccountInbox, accountId),
-    useAccountAsMailbox: (accountId) => ipcRenderer.invoke(IPC.providers.useAccountAsMailbox, accountId)
+    useAccountAsMailbox: (accountId) => ipcRenderer.invoke(IPC.providers.useAccountAsMailbox, accountId),
+    listInboxes: () => ipcRenderer.invoke(IPC.providers.listInboxes),
+    peekGeneratedInbox: (id) => ipcRenderer.invoke(IPC.providers.peekGeneratedInbox, id),
+    removeInbox: (id) => ipcRenderer.invoke(IPC.providers.removeInbox, id)
   },
   totp: {
     get: (id) => ipcRenderer.invoke(IPC.totp.get, id),

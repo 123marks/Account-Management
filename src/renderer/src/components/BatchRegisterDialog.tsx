@@ -96,7 +96,7 @@ export function BatchRegisterDialog({
         <DialogHeader>
           <DialogTitle>批量注册</DialogTitle>
           <DialogDescription>
-            任意可用邮箱都能注册各平台（Cursor / Windsurf / GitHub / Discord / OpenAI / X / Claude）。也可走已有 Google/GitHub OAuth。
+            邮箱注册平台与「添加账号」对齐：Google / GitHub / Microsoft / Apple / X / YouTube / Discord / OpenAI / Claude / Cursor / Windsurf。也可走已有 Google/GitHub OAuth。
           </DialogDescription>
         </DialogHeader>
 

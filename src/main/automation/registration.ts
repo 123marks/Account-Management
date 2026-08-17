@@ -3,6 +3,7 @@ import { enqueue } from './engine'
 import { createInbox } from './mailbox'
 import { setTaskSecret } from './secrets'
 import { createAccount, getAccount } from '../db/repositories/accounts'
+import { linkInboxToAccount } from '../db/repositories/inboxes'
 import { genPassword } from './flows/util'
 import { logger } from '../services/logger'
 
@@ -43,6 +44,7 @@ export async function enqueueRegistrations(
         mailboxKind: inbox.driver,
         mailboxAppPassword: inbox.token
       })
+      linkInboxToAccount(inbox.email, account.id)
       const tasks = enqueue({
         accountIds: [account.id],
         type: 'register',

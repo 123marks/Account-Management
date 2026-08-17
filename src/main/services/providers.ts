@@ -5,7 +5,8 @@ import type { ProviderSetting, ProviderSettingInput, ProviderTestResult } from '
 import { getDriver, type ProviderType } from '@shared/providers'
 import { parseProxy, socksAuthUnsupported, SOCKS_AUTH_MESSAGE } from '../automation/proxy'
 import { detectChrome } from '../automation/chrome'
-import { peekDriverInbox, peekImapInbox, peekOutlookGraphInbox, peekRecentMails, testMailboxDriver } from '../automation/mailbox'
+import { peekDriverInbox, peekGeneratedInbox, peekImapInbox, peekOutlookGraphInbox, peekRecentMails, testMailboxDriver } from '../automation/mailbox'
+import { listGeneratedInboxes, removeGeneratedInbox } from '../db/repositories/inboxes'
 import {
   MAILBOX_SERVICE_DRIVERS,
   mailboxImapHost,
@@ -192,7 +193,7 @@ export async function testProvider(id: string): Promise<ProviderTestResult> {
   const p = getProvider(id)
   if (!p) return { ok: false, message: '未找到服务' }
   try {
-    if (p.type === 'mailbox') return await testMailboxDriver(p.driver, p.config)
+    if (p.type === 'mailbox') return await testMailboxDriver(p.driver, p.config, p.id)
     if (p.type === 'captcha') return await testCaptcha(p)
     if (p.type === 'proxy') return await testProxy(p)
     if (p.type === 'sms') return await testSmsDriver(p.driver, p.config)
@@ -370,4 +371,16 @@ export function useAccountAsMailbox(accountId: string): ProviderSetting {
             mailbox: 'INBOX'
           }
   })
+}
+
+export function listInboxes(): import('@shared/types').GeneratedInbox[] {
+  return listGeneratedInboxes()
+}
+
+export function peekInboxRecord(id: string): Promise<import('@shared/types').MailPreview[]> {
+  return peekGeneratedInbox(id)
+}
+
+export function removeInbox(id: string): void {
+  removeGeneratedInbox(id)
 }

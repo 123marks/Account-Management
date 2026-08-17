@@ -1,4 +1,5 @@
 import { listProviders, saveProvider } from '../services/providers'
+import { recordGeneratedInbox, revealInboxToken, getGeneratedInbox } from '../db/repositories/inboxes'
 import { tempmailDriver } from './mailbox/tempmail'
 import { testmailDriver } from './mailbox/testmail'
 import { imapDriver } from './mailbox/imap'
@@ -47,7 +48,7 @@ export async function createInbox(): Promise<Inbox> {
   const items = listProviders('mailbox')
   const chosen = items.find((p) => p.isDefault && p.enabled) ?? items.find((p) => p.enabled)
   if (!chosen) throw new Error('未配置可用的默认邮箱服务，请到「服务中心」添加并设为默认')
-  return driverOf(chosen.driver).createInbox({
+  const inbox = await driverOf(chosen.driver).createInbox({
     config: chosen.config,
     persistConfig: (patch) => {
       saveProvider({
@@ -61,6 +62,16 @@ export async function createInbox(): Promise<Inbox> {
       })
     }
   })
+  if (inbox.email.includes('@')) {
+    recordGeneratedInbox({
+      providerId: chosen.id,
+      driver: inbox.driver,
+      email: inbox.email,
+      token: inbox.token,
+      source: 'register'
+    })
+  }
+  return inbox
 }
 
 interface WaitOpts {
@@ -170,13 +181,62 @@ export async function waitForVerify(
   throw new Error(`等待邮箱验证码或验证链接超时（${Math.round(timeout / 1000)}s）`)
 }
 
+const GENERATIVE_DRIVERS = new Set([
+  'tempmail_lol',
+  'testmail',
+  'generic_http',
+  'cfworker',
+  'icloud_hme',
+  'mail_pickup'
+])
+
 export async function testMailboxDriver(
   driver: string,
-  config: Record<string, string | number | boolean>
+  config: Record<string, string | number | boolean>,
+  providerId?: string
 ): Promise<{ ok: boolean; message: string }> {
   const d = DRIVERS[driver]
   if (!d) return { ok: false, message: '未知邮箱驱动' }
+  if (GENERATIVE_DRIVERS.has(driver)) {
+    const inbox = await d.createInbox({
+      config,
+      persistConfig: providerId
+        ? (patch) => {
+            const items = listProviders('mailbox')
+            const chosen = items.find((p) => p.id === providerId)
+            if (!chosen) return
+            saveProvider({
+              id: chosen.id,
+              type: chosen.type,
+              driver: chosen.driver,
+              name: chosen.name,
+              enabled: chosen.enabled,
+              isDefault: false,
+              config: { ...chosen.config, ...patch }
+            })
+          }
+        : undefined
+    })
+    if (inbox.email.includes('@')) {
+      recordGeneratedInbox({
+        providerId,
+        driver: inbox.driver,
+        email: inbox.email,
+        token: inbox.token,
+        source: 'test'
+      })
+    }
+    return { ok: true, message: `已生成临时邮箱：${inbox.email}` }
+  }
   return d.test({ config })
+}
+
+export async function peekGeneratedInbox(id: string): Promise<import('@shared/types').MailPreview[]> {
+  const row = getGeneratedInbox(id)
+  if (!row) throw new Error('没有这条邮箱记录')
+  const token = revealInboxToken(id)
+  const cfg = listProviders('mailbox').find((p) => p.id === row.providerId)?.config ?? {}
+  return peekDriverInbox(row.driver, row.email, token, cfg)
 }
 
 function toPreview(m: MailMessage): import('@shared/types').MailPreview {

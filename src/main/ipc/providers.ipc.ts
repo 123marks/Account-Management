@@ -11,7 +11,10 @@ import {
   testProvider,
   peekProviderMails,
   peekAccountInbox,
-  useAccountAsMailbox
+  useAccountAsMailbox,
+  listInboxes,
+  peekInboxRecord,
+  removeInbox
 } from '../services/providers'
 
 export function registerProvidersIpc(): void {
@@ -27,4 +30,7 @@ export function registerProvidersIpc(): void {
   ipcMain.handle(IPC.providers.useAccountAsMailbox, (_e, accountId: string) =>
     maskSetting(useAccountAsMailbox(accountId))
   )
+  ipcMain.handle(IPC.providers.listInboxes, () => listInboxes())
+  ipcMain.handle(IPC.providers.peekGeneratedInbox, (_e, id: string) => peekInboxRecord(id))
+  ipcMain.handle(IPC.providers.removeInbox, (_e, id: string) => removeInbox(id))
 }

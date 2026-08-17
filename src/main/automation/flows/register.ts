@@ -278,12 +278,76 @@ const ANTHROPIC_REGISTER: RegisterSpec = {
   successUrlIncludes: 'claude.ai'
 }
 
+const GOOGLE_REGISTER: RegisterSpec = {
+  platform: 'google',
+  title: 'Google 注册',
+  description: '用任意邮箱注册 Google 账号。流程多步且常有人机验证 / 手机号，需关无头或接码。',
+  signupUrl: 'https://accounts.google.com/signup',
+  firstNameSelectors: ['input[name="firstName"]', 'input[id="firstName"]'],
+  lastNameSelectors: ['input[name="lastName"]', 'input[id="lastName"]'],
+  emailSelectors: ['input[type="email"]', 'input[name="Username"]', 'input[name="email"]'],
+  passwordSelectors: ['input[name="Passwd"]', 'input[name="ConfirmPasswd"]', 'input[type="password"]'],
+  confirmPasswordSelectors: ['input[name="ConfirmPasswd"]'],
+  submitSelectors: ['button', '#collectNameNext', '#collectUsernameNext'],
+  codeSelectors: ['input[name="code"]', 'input[id="code"]', 'input[autocomplete="one-time-code"]'],
+  emailKeyword: 'google',
+  successUrlIncludes: 'myaccount.google.com'
+}
+
+const MICROSOFT_REGISTER: RegisterSpec = {
+  platform: 'microsoft',
+  title: 'Microsoft 注册',
+  description: '用任意邮箱注册 Microsoft / Outlook。常要求人机验证，建议关无头。',
+  signupUrl: 'https://signup.live.com/signup',
+  emailSelectors: ['input[type="email"]', 'input[name="MemberName"]', 'input[name="email"]'],
+  passwordSelectors: ['input[type="password"]', 'input[name="Password"]'],
+  submitSelectors: ['button[type="submit"]', 'input[type="submit"]'],
+  codeSelectors: ['input[name="otc"]', 'input[name="code"]', 'input[autocomplete="one-time-code"]'],
+  emailKeyword: 'microsoft',
+  successUrlIncludes: 'microsoft.com'
+}
+
+const YOUTUBE_REGISTER: RegisterSpec = {
+  platform: 'youtube',
+  title: 'YouTube 注册',
+  description: 'YouTube 走 Google 账号。用任意邮箱走 Google 注册流程，成功后即可用于 YouTube。',
+  signupUrl: 'https://accounts.google.com/signup',
+  firstNameSelectors: ['input[name="firstName"]', 'input[id="firstName"]'],
+  lastNameSelectors: ['input[name="lastName"]', 'input[id="lastName"]'],
+  emailSelectors: ['input[type="email"]', 'input[name="Username"]', 'input[name="email"]'],
+  passwordSelectors: ['input[name="Passwd"]', 'input[type="password"]'],
+  confirmPasswordSelectors: ['input[name="ConfirmPasswd"]'],
+  submitSelectors: ['button'],
+  codeSelectors: ['input[name="code"]', 'input[autocomplete="one-time-code"]'],
+  emailKeyword: 'google',
+  successUrlIncludes: 'google.com'
+}
+
+const APPLE_REGISTER: RegisterSpec = {
+  platform: 'apple',
+  title: 'Apple ID 注册',
+  description: '用任意邮箱注册 Apple ID。页面风控强，建议关无头并手动完成验证。',
+  signupUrl: 'https://account.apple.com/account',
+  firstNameSelectors: ['input[name="firstName"]', 'input[autocomplete="given-name"]'],
+  lastNameSelectors: ['input[name="lastName"]', 'input[autocomplete="family-name"]'],
+  emailSelectors: ['input[type="email"]', 'input[name="email"]'],
+  passwordSelectors: ['input[type="password"]', 'input[name="password"]'],
+  submitSelectors: ['button[type="submit"]'],
+  codeSelectors: ['input[autocomplete="one-time-code"]', 'input[name="code"]'],
+  emailKeyword: 'apple',
+  successUrlIncludes: 'apple.com'
+}
+
 export const registerFlows: Flow[] = [
-  makeRegisterFlow(CURSOR_REGISTER),
-  makeRegisterFlow(WINDSURF_REGISTER),
+  makeRegisterFlow(GOOGLE_REGISTER),
   githubRegister,
+  makeRegisterFlow(MICROSOFT_REGISTER),
+  makeRegisterFlow(APPLE_REGISTER),
+  makeRegisterFlow(X_REGISTER),
+  makeRegisterFlow(YOUTUBE_REGISTER),
   makeRegisterFlow(DISCORD_REGISTER),
   makeRegisterFlow(OPENAI_REGISTER),
-  makeRegisterFlow(X_REGISTER),
-  makeRegisterFlow(ANTHROPIC_REGISTER)
+  makeRegisterFlow(ANTHROPIC_REGISTER),
+  makeRegisterFlow(CURSOR_REGISTER),
+  makeRegisterFlow(WINDSURF_REGISTER)
 ]

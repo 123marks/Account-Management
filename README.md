@@ -116,6 +116,18 @@ Google / GitHub / X 等平台存在验证码、设备验证与风控机制。本
 - 国际化（i18n）
 - flow 冒烟测试与选择器健康检查
 
+## 💬 交流群
+
+扫码或搜索群号加入 QQ 群，反馈问题、交流用法。
+
+**群号：`1070080897`**
+
+<p align="center">
+  <img src="docs/qq-group.png" alt="QQ 交流群二维码" width="280" />
+</p>
+
+<p align="center">扫一扫二维码，加入群聊</p>
+
 ## 📄 许可证
 
 [MIT](LICENSE)

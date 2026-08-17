@@ -112,7 +112,9 @@ export function BatchRegisterDialog({
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
               <div className="flex-1">
                 <p className="text-foreground">尚未配置可用的邮箱服务</p>
-                <p className="text-xs text-muted-foreground">注册需要邮箱接收验证码，请先到「服务中心」添加并启用。</p>
+                <p className="text-xs text-muted-foreground">
+                  注册会申请邮箱并收验证码/链接。请到「服务中心」添加临时邮箱、IMAP、取件链接或 Outlook 双令牌，并设为默认。
+                </p>
               </div>
               <Button
                 size="sm"

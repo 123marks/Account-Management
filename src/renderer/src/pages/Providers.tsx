@@ -33,7 +33,7 @@ const TABS: { type: ProviderType; icon: typeof Mail }[] = [
 ]
 
 const TAB_HINT: Record<ProviderType, string> = {
-  mailbox: '注册时用于接收邮箱验证码 / 验证链接。',
+  mailbox: '注册时自动申请邮箱、收验证码或验证链接并填回，形成闭环。',
   captcha: '注册时用于自动求解 Turnstile / reCAPTCHA / hCaptcha。',
   sms: '注册需要手机验证时，用于租用号码并接收短信码。',
   proxy: '为浏览器 / 请求提供出口 IP，降低风控与频率限制。'
@@ -135,15 +135,15 @@ export default function Providers(): React.JSX.Element {
               <Plus className="h-4 w-4" /> 添加{PROVIDER_TYPE_LABELS[tab]}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
+          <DropdownMenuContent align="end" side="bottom" collisionPadding={16} className="w-80">
             {drivers.map((d) => (
-              <DropdownMenuItem key={d.driver} onClick={() => openAdd(d.driver)}>
-                <div>
+              <DropdownMenuItem key={d.driver} className="items-start py-2" onClick={() => openAdd(d.driver)}>
+                <div className="min-w-0">
                   <div>
                     {d.label}
                     {d.unimplemented ? '（未接入）' : ''}
                   </div>
-                  <div className="text-xs text-muted-foreground">{d.description}</div>
+                  <div className="line-clamp-2 text-xs text-muted-foreground">{d.description}</div>
                 </div>
               </DropdownMenuItem>
             ))}
@@ -176,6 +176,9 @@ export default function Providers(): React.JSX.Element {
                           <Badge variant="success" className="gap-1">
                             <CheckCircle2 className="h-3 w-3" /> 默认
                           </Badge>
+                        )}
+                        {typeof p.config.poolRemaining === 'number' && (
+                          <Badge variant="outline">剩余 {p.config.poolRemaining}</Badge>
                         )}
                         {!p.enabled && <Badge variant="secondary">已停用</Badge>}
                         {def?.unimplemented && <Badge variant="outline">未接入</Badge>}

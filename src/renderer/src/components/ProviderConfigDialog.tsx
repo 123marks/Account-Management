@@ -99,13 +99,18 @@ export function ProviderConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>{editing ? '编辑服务' : `添加服务 · ${def.label}`}</DialogTitle>
           <DialogDescription>{def.description}</DialogDescription>
           {def.unimplemented && (
             <p className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
               该驱动尚未接入运行时，保存后不会生效。
+            </p>
+          )}
+          {typeof editing?.config.poolRemaining === 'number' && (
+            <p className="text-xs text-muted-foreground">
+              当前库存剩余 {String(editing.config.poolRemaining)} 行。库存框留空表示不替换已保存的行。
             </p>
           )}
         </DialogHeader>
@@ -143,7 +148,7 @@ export function ProviderConfigDialog({
                       value={String(config[f.key] ?? '')}
                       onChange={(e) => setField(f.key, e.target.value)}
                       placeholder={f.placeholder}
-                      rows={3}
+                      rows={f.key === 'stock' ? 8 : 3}
                       className="font-mono text-xs"
                     />
                   ) : (

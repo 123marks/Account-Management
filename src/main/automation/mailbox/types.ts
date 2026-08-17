@@ -17,6 +17,8 @@ export interface MailMessage {
 export interface MailboxDriverContext {
   config: Record<string, string | number | boolean>
   signal?: AbortSignal
+  /** Persist config patches (e.g. consume one stock line after createInbox). */
+  persistConfig?: (patch: Record<string, string | number | boolean>) => void
 }
 
 export interface MailboxDriver {

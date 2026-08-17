@@ -7,6 +7,7 @@ import { parseProxy, socksAuthUnsupported, SOCKS_AUTH_MESSAGE } from '../automat
 import { detectChrome } from '../automation/chrome'
 import { testMailboxDriver } from '../automation/mailbox'
 import { testSmsDriver } from '../automation/sms'
+import { countStockLines } from '../automation/mailbox/stock'
 
 interface Row {
   id: string
@@ -106,6 +107,9 @@ export function saveProvider(input: ProviderSettingInput & { id?: string }): Pro
       const v = cfg[k]
       if ((v === undefined || v === '') && existing[k] !== undefined) cfg[k] = existing[k]
     }
+  }
+  if (typeof cfg.stock === 'string') {
+    cfg.poolRemaining = countStockLines(String(cfg.stock))
   }
   const configEnc = encryptField(JSON.stringify(cfg))
 

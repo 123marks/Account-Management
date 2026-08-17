@@ -50,7 +50,7 @@ export const PROVIDER_DRIVERS: ProviderDriver[] = [
     type: 'mailbox',
     driver: 'tempmail_lol',
     label: 'TempMail.lol（免费临时邮箱）',
-    description: '免注册、自动生成临时邮箱并轮询收信，适合快速起步。',
+    description: '免注册生成临时邮箱，批量注册会自动收验证码/链接并填回，形成闭环。',
     testable: true,
     fields: [
       {
@@ -78,7 +78,7 @@ export const PROVIDER_DRIVERS: ProviderDriver[] = [
     type: 'mailbox',
     driver: 'imap',
     label: 'IMAP 邮箱（推荐）',
-    description: '接入真实邮箱收验证码。Gmail 请使用应用专用密码；配合 plus-address 可派生子地址。',
+    description: '自己的 Gmail / Outlook / 域名邮箱。IMAP 收验证码，注册时自动派生 plus 地址。',
     testable: true,
     fields: [
       { key: 'host', label: 'IMAP 服务器', type: 'text', required: true, placeholder: 'imap.gmail.com' },
@@ -208,7 +208,7 @@ export const PROVIDER_DRIVERS: ProviderDriver[] = [
     type: 'mailbox',
     driver: 'cfworker',
     label: 'Cloudflare Worker 自建邮箱',
-    description: '对接自建 Cloudflare 邮件 Worker：POST /api/inbox 创建，GET /api/inbox/{address}/messages 收信。',
+    description: '用自己的域名接信：POST /api/inbox 创建，GET /api/inbox/{address}/messages 收验证码。',
     testable: true,
     fields: [
       { key: 'apiUrl', label: 'API 地址', type: 'text', required: true, placeholder: 'https://mail.example.com' },
@@ -236,6 +236,60 @@ export const PROVIDER_DRIVERS: ProviderDriver[] = [
       },
       { key: 'listPath', label: '邮件数组的 JSON 路径', type: 'text', defaultValue: 'emails' },
       { key: 'token', label: '固定 Bearer Token（可选）', type: 'password', secret: true }
+    ]
+  },
+  {
+    type: 'mailbox',
+    driver: 'mail_pickup',
+    label: '取件链接邮箱（iCloud 商业号）',
+    description:
+      '粘贴已买好的邮箱+取件页，注册时弹出一个地址并轮询收码。支持 mail.xxx/messages 与 flysms pickup。',
+    testable: true,
+    fields: [
+      {
+        key: 'stock',
+        label: '库存（每行一个）',
+        type: 'textarea',
+        required: true,
+        secret: true,
+        placeholder:
+          'name@icloud.com----https://mail.example.com/messages/ID/name@icloud.com\nname@icloud.com---tok_xxx---https://flysms.example/icloud/pickup#email=name@icloud.com&key=tok_xxx',
+        help: '每行：邮箱----取件URL，或 邮箱---token---取件URL。批量注册每成功申请一个就从库存扣一行。'
+      }
+    ]
+  },
+  {
+    type: 'mailbox',
+    driver: 'outlook_graph',
+    label: 'Outlook Graph / OAuth2（gr/o2 双令牌）',
+    description:
+      '微软长效号：Graph 读信，失败则走 OAuth2 IMAP。库存格式 email----密码----clientId----refreshToken。',
+    testable: true,
+    fields: [
+      {
+        key: 'stock',
+        label: '库存（每行一个双令牌号）',
+        type: 'textarea',
+        secret: true,
+        placeholder:
+          'name@outlook.com----password----xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx----M.C519_BAY.0.U.-…',
+        help: 'gr/o2 双令牌：邮箱----密码----Azure client_id----refresh_token。有库存时每次注册消耗一行；无库存则用下方单个账号并派生 plus 地址。'
+      },
+      { key: 'email', label: '单个账号邮箱（无库存时）', type: 'text', placeholder: 'name@outlook.com' },
+      { key: 'password', label: '密码（可选，IMAP 备用）', type: 'password', secret: true },
+      {
+        key: 'clientId',
+        label: 'Azure 应用 client_id',
+        type: 'text',
+        placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+      },
+      { key: 'refreshToken', label: 'OAuth2 / Graph refresh token', type: 'password', secret: true },
+      {
+        key: 'plusAddressing',
+        label: '无库存时启用 plus-address 派生',
+        type: 'boolean',
+        defaultValue: true
+      }
     ]
   },
   // ── Captcha ──────────────────────────────────────────────

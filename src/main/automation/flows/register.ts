@@ -2,7 +2,7 @@ import type { Flow, FlowResult, StepContext } from '../types'
 import { githubRegister } from './githubRegister'
 import type { Platform } from '@shared/types'
 import { firstVisible } from './util'
-import { waitForCode } from '../mailbox'
+import { waitForVerify } from '../mailbox'
 import { getTaskSecret } from '../secrets'
 
 /**
@@ -144,22 +144,29 @@ export function makeRegisterFlow(spec: RegisterSpec): Flow {
       await ctx.step('处理人机验证', () => handleChallenge(ctx))
       ctx.setProgress(60)
 
-      let code = ''
-      await ctx.step('等待邮箱验证码', async () => {
-        code = await waitForCode(driver, token, {
+      const verify = { kind: 'code' as 'code' | 'link', value: '' }
+      await ctx.step('等待邮箱验证码 / 验证链接', async () => {
+        const got = await waitForVerify(driver, token, {
           timeoutMs: 150000,
           keyword: spec.emailKeyword,
           toAddress: account.email
         })
-        // Don't log the code value itself (it lands in the log DB / export).
-        ctx.log('info', `已收到邮箱验证码（${code.length} 位）`)
+        verify.kind = got.kind
+        verify.value = got.value
+        ctx.log('info', got.kind === 'code' ? `已收到邮箱验证码（${got.value.length} 位）` : '已收到验证链接')
       })
       ctx.setProgress(80)
 
-      await ctx.step('填写验证码', async () => {
+      await ctx.step(verify.kind === 'link' ? '打开验证链接' : '填写验证码', async () => {
+        if (!verify.value) throw new Error('未收到邮箱验证')
+        if (verify.kind === 'link') {
+          await page.goto(verify.value, { waitUntil: 'domcontentloaded', timeout: 30000 })
+          await page.waitForTimeout(2500)
+          return
+        }
         const el = await firstVisible(page, spec.codeSelectors, 15000)
         if (!el) throw new Error('未找到验证码输入框')
-        await el.fill(code)
+        await el.fill(verify.value)
         await clickOrEnter(ctx, spec.submitSelectors)
         await page.waitForTimeout(3000)
       })

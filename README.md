@@ -10,6 +10,10 @@
 
 交流反馈：[Releases](https://github.com/123marks/Account-Management/releases) · QQ 群 `1070080897`（下方有二维码）
 
+<p align="center">
+  <img src="docs/screenshots/accounts.png" alt="AI Account Manager 账号管理" width="920" />
+</p>
+
 ---
 
 ## ✨ 功能特性
@@ -85,15 +89,17 @@ npm run dist:linux # 打 Linux AppImage / deb / tar.gz
 
 ## 📸 界面
 
-首次运行会在系统 userData 目录初始化本地数据库与加密主密钥。主要页面：
+<p align="center">
+  <img src="docs/screenshots/providers.png" alt="服务中心" width="920" />
+</p>
+<p align="center"><b>服务中心</b> · 邮箱 / 验证码 / 接码 / 代理</p>
 
-- **仪表盘**：账号与任务总览、平台分布、最近任务
-- **账号管理**：表格化管理、内联实时 2FA、批量运行自动化
-- **安全中心 / 2FA 中心**：凭据与验证器集中查看
-- **服务中心**：接码、邮箱等外部服务配置
-- **自动化**：任务队列与历史、实时进度、取消、查看任务日志
-- **日志**：实时结构化日志与过滤
-- **设置**：并发数、无头模式、浏览器接入方式、Chrome 路径、主题
+<p align="center">
+  <img src="docs/screenshots/automation.png" alt="自动化" width="920" />
+</p>
+<p align="center"><b>自动化</b> · Playwright 驱动本地 Chrome · 并发任务</p>
+
+首次运行会在系统 userData 目录初始化本地数据库与加密主密钥。其他页面：仪表盘、安全中心、2FA 中心、日志、设置。
 
 ## 📂 项目结构与文档
 

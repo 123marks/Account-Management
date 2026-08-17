@@ -19,6 +19,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Account, AccountSecrets, PasswordHistoryEntry } from '@shared/types'
+import { accountTitle } from '@shared/accountDisplay'
+import { mailboxKindLabel } from '@shared/mailboxAccount'
 import { estimatePasswordStrength, strengthLabel } from '@shared/security'
 import { api } from '@renderer/lib/api'
 import { formatTime, relativeTime } from '@renderer/lib/utils'
@@ -200,7 +202,7 @@ export function AccountDetailDrawer(): React.JSX.Element {
             <div className="flex items-center gap-3 border-b p-5 pr-12">
               <PlatformGlyph platform={account.platform} size={40} />
               <div className="min-w-0 flex-1">
-                <SheetTitle className="truncate text-base font-semibold">{account.label}</SheetTitle>
+                <SheetTitle className="truncate text-base font-semibold">{accountTitle(account)}</SheetTitle>
                 <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                   {platformMeta(account.platform).label}
                   <AccountStatusBadge status={account.status} />
@@ -221,6 +223,8 @@ export function AccountDetailDrawer(): React.JSX.Element {
                 <div className="divide-y">
                   <Field label="用户名" value={account.username} />
                   <Field label="邮箱" value={account.email} />
+                  <Field label="收信方式" value={mailboxKindLabel(account.mailboxKind)} />
+                  <Field label="收信密码" value={account.hasMailboxPass ? '已配置' : '未配置'} />
                   {account.oauthSourceAccountId && (
                     <Field
                       label="OAuth 来源"
@@ -557,7 +561,7 @@ export function AccountDetailDrawer(): React.JSX.Element {
               <Button
                 size="sm"
                 variant="outline"
-                title="用该账号密码创建 IMAP 邮箱服务，供批量注册收验证码"
+                title="用该账号的收信凭证创建邮箱服务，供批量注册收验证码"
                 onClick={() => {
                   void api.providers
                     .useAccountAsMailbox(account.id)

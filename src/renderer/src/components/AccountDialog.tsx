@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Copy, Eye, EyeOff, Fingerprint, Link2, Plus, QrCode, SlidersHorizontal, Wand2, X } from 'lucide-react'
+import { Copy, Eye, EyeOff, Fingerprint, Inbox, Link2, Plus, QrCode, SlidersHorizontal, Wand2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Account, AccountInput, AccountStatus, Platform } from '@shared/types'
+import { MAILBOX_KINDS, mailboxKindHelp, suggestMailboxKind, type MailboxKind } from '@shared/mailboxAccount'
 import { estimatePasswordStrength, strengthLabel } from '@shared/security'
 import { api } from '@renderer/lib/api'
 import { parseAccountPaste } from '@renderer/lib/accountPaste'
@@ -52,6 +53,9 @@ interface FormState {
   customFields: { key: string; value: string }[]
   notes: string
   status: AccountStatus
+  mailboxKind: MailboxKind
+  mailboxAppPassword: string
+  mailboxClientId: string
 }
 
 const EMPTY: FormState = {
@@ -73,7 +77,10 @@ const EMPTY: FormState = {
   timezone: '',
   customFields: [],
   notes: '',
-  status: 'active'
+  status: 'active',
+  mailboxKind: '',
+  mailboxAppPassword: '',
+  mailboxClientId: ''
 }
 
 function PasswordStrength({ value }: { value: string }): React.JSX.Element {
@@ -118,11 +125,13 @@ export function AccountDialog({
   const [saving, setSaving] = useState(false)
   const [genOpen, setGenOpen] = useState(false)
   const [paste, setPaste] = useState('')
+  const [showMailboxPwd, setShowMailboxPwd] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!open) return
     setShowPwd(false)
+    setShowMailboxPwd(false)
     setUri('')
     setPaste('')
     if (account) {
@@ -147,7 +156,10 @@ export function AccountDialog({
           timezone: account.timezone,
           customFields: Object.entries(account.customFields).map(([key, value]) => ({ key, value })),
           notes: account.notes,
-          status: account.status
+          status: account.status,
+          mailboxKind: (account.mailboxKind || suggestMailboxKind(account.platform, account.email)) as MailboxKind,
+          mailboxAppPassword: s.mailboxAppPassword ?? '',
+          mailboxClientId: account.mailboxClientId
         })
       })()
     } else {
@@ -190,7 +202,8 @@ export function AccountDialog({
       locale: input.locale || '',
       timezone: input.timezone || '',
       customFields: Object.entries(input.customFields || {}).map(([key, value]) => ({ key, value })),
-      tagsText: (input.tags || []).join(', ')
+      tagsText: (input.tags || []).join(', '),
+      mailboxKind: (input.mailboxKind || suggestMailboxKind(input.platform, input.email)) as MailboxKind
     })
   }
 
@@ -254,15 +267,16 @@ export function AccountDialog({
   }
 
   const submit = async (): Promise<void> => {
-    if (!form.label.trim()) {
-      toast.error('请填写标签名')
+    const label = form.label.trim() || form.email.trim() || form.username.trim()
+    if (!label) {
+      toast.error('请填写标签名或邮箱')
       return
     }
     setSaving(true)
     try {
       const input: AccountInput = {
         platform: form.platform,
-        label: form.label.trim(),
+        label,
         username: form.username.trim(),
         email: form.email.trim(),
         password: form.password || null,
@@ -289,7 +303,10 @@ export function AccountDialog({
             .filter(([k]) => k.length > 0)
         ),
         notes: form.notes,
-        status: form.status
+        status: form.status,
+        mailboxKind: form.mailboxKind,
+        mailboxAppPassword: form.mailboxAppPassword || null,
+        mailboxClientId: form.mailboxClientId.trim()
       }
       if (account) {
         await update(account.id, input)
@@ -349,7 +366,16 @@ export function AccountDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>平台</Label>
-              <Select value={form.platform} onValueChange={(v) => set({ platform: v as Platform })}>
+              <Select
+                value={form.platform}
+                onValueChange={(v) => {
+                  const platform = v as Platform
+                  set({
+                    platform,
+                    mailboxKind: form.mailboxKind || suggestMailboxKind(platform, form.email)
+                  })
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -378,11 +404,11 @@ export function AccountDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>标签名 *</Label>
+            <Label>标签名</Label>
             <Input
               value={form.label}
               onChange={(e) => set({ label: e.target.value })}
-              placeholder="例如：主号 / 备用号 / 客户A"
+              placeholder="可留空，默认用邮箱显示"
             />
           </div>
 
@@ -395,7 +421,13 @@ export function AccountDialog({
               <Label>邮箱</Label>
               <Input
                 value={form.email}
-                onChange={(e) => set({ email: e.target.value })}
+                onChange={(e) => {
+                  const email = e.target.value
+                  set({
+                    email,
+                    mailboxKind: form.mailboxKind || suggestMailboxKind(form.platform, email)
+                  })
+                }}
                 onPaste={(e) => {
                   const text = e.clipboardData.getData('text')
                   if (text.includes('----') || text.includes('|') || /----|---/.test(text)) {
@@ -450,6 +482,80 @@ export function AccountDialog({
               </Button>
             </div>
             {form.password && <PasswordStrength value={form.password} />}
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <div className="flex items-center gap-1.5">
+              <Inbox className="h-4 w-4 text-primary" />
+              <Label>收信方式（读验证码 / 验证链接）</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Google / Apple / 微软都能收信，但凭证不同。登录密码通常不能 IMAP；Gmail 和 iCloud 必须填应用专用密码。
+            </p>
+            <Select
+              value={form.mailboxKind || '__none__'}
+              onValueChange={(v) => set({ mailboxKind: (v === '__none__' ? '' : v) as MailboxKind })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MAILBOX_KINDS.map((k) => (
+                  <SelectItem key={k.value || '__none__'} value={k.value || '__none__'}>
+                    {k.label}
+                  </SelectItem>
+                ))}
+                {form.mailboxKind && !MAILBOX_KINDS.some((k) => k.value === form.mailboxKind) && (
+                  <SelectItem value={form.mailboxKind}>已绑定邮箱服务 · {form.mailboxKind}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{mailboxKindHelp(form.mailboxKind)}</p>
+            {form.mailboxKind && form.mailboxKind !== 'outlook_graph' && (
+              <div className="relative">
+                <Input
+                  type={showMailboxPwd ? 'text' : 'password'}
+                  value={form.mailboxAppPassword}
+                  onChange={(e) => set({ mailboxAppPassword: e.target.value })}
+                  placeholder="收信专用密码（应用专用密码，不是登录密码）"
+                  className="pr-9 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowMailboxPwd((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showMailboxPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            )}
+            {form.mailboxKind === 'outlook_graph' && (
+              <div className="space-y-2">
+                <Input
+                  value={form.mailboxClientId}
+                  onChange={(e) => set({ mailboxClientId: e.target.value })}
+                  placeholder="Azure 应用 client_id"
+                  className="font-mono text-xs"
+                />
+                <div className="relative">
+                  <Input
+                    type={showMailboxPwd ? 'text' : 'password'}
+                    value={form.mailboxAppPassword}
+                    onChange={(e) => set({ mailboxAppPassword: e.target.value })}
+                    placeholder="可选：Outlook 应用密码（Graph 失败时回退 IMAP）"
+                    className="pr-9 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowMailboxPwd((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showMailboxPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">Refresh token 填在下方「Refresh Token」字段。</p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">

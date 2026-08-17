@@ -30,14 +30,18 @@ export async function enqueueRegistrations(
     try {
       const inbox = await createInbox()
       const password = genPassword(platform === 'github' ? 18 : 16)
+      const local = inbox.email.split('@')[0] || 'user'
       const account = createAccount({
         platform,
-        label: `${platform}-${inbox.email.split('@')[0]}`,
-        username: '',
+        label: inbox.email,
+        username: local,
         email: inbox.email,
         password,
         status: 'active',
-        notes: '自动注册待完成'
+        tags: ['auto-register'],
+        notes: `自动注册待完成 · ${inbox.email} · 驱动 ${inbox.driver}`,
+        mailboxKind: inbox.driver,
+        mailboxAppPassword: inbox.token
       })
       const tasks = enqueue({
         accountIds: [account.id],
@@ -69,11 +73,12 @@ export async function enqueueOauthRegistrations(
       if (!source) throw new Error('源账号不存在')
       const account = createAccount({
         platform,
-        label: `${platform}-${source.label || source.email.split('@')[0]}`,
-        username: '',
+        label: source.email || source.label || `${platform}-oauth`,
+        username: source.username || source.email.split('@')[0] || '',
         email: source.email,
         status: 'active',
-        notes: `OAuth 待完成 · 源 ${source.label}`,
+        tags: ['oauth-register'],
+        notes: `OAuth 待完成 · 源 ${source.label || source.email}`,
         oauthProvider,
         oauthSourceAccountId: source.id
       })

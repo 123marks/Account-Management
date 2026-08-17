@@ -83,6 +83,13 @@ export const IPC = {
     saveFile: 'system:save-file',
     cryptoAvailable: 'system:crypto-available'
   },
+  updater: {
+    status: 'updater:status',
+    check: 'updater:check',
+    download: 'updater:download',
+    install: 'updater:install',
+    changed: 'updater:changed'
+  },
   sms: {
     rent: 'sms:rent',
     waitCode: 'sms:wait-code',

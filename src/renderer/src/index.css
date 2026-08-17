@@ -109,18 +109,32 @@
   background-clip: content-box;
 }
 
-.account-card-frame {
+.account-card-main {
   border: 1px solid transparent;
   background-image:
     linear-gradient(hsl(var(--card)), hsl(var(--card))),
-    linear-gradient(135deg, #7b6cff 0%, #f472b6 38%, #fb923c 68%, #67e8f9 100%);
+    linear-gradient(135deg, #b45309 0%, #fbbf24 48%, #f59e0b 100%);
   background-origin: border-box;
   background-clip: padding-box, border-box;
-  box-shadow: 0 0 0 0 transparent;
-  transition: box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: 0 0 0 1px rgb(245 158 11 / 0.18);
 }
-.account-card-frame:hover,
-.account-card-frame-active {
-  filter: saturate(1.15);
-  box-shadow: 0 0 0 1px rgb(123 108 255 / 0.25), 0 8px 24px -12px rgb(123 108 255 / 0.45);
+.account-card-running {
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(hsl(var(--card)), hsl(var(--card))),
+    conic-gradient(from var(--card-spin, 0deg), #7b6cff, #f472b6, #fb923c, #67e8f9, #7b6cff);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  animation: account-card-spin 2.8s linear infinite;
+  box-shadow: 0 0 0 1px rgb(123 108 255 / 0.28), 0 8px 22px -12px rgb(123 108 255 / 0.5);
+}
+@property --card-spin {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes account-card-spin {
+  to {
+    --card-spin: 360deg;
+  }
 }

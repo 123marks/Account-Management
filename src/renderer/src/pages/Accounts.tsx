@@ -32,8 +32,10 @@ import { toCsv } from '@renderer/lib/csv'
 import { randomIdentity } from '@renderer/lib/identity'
 import { relativeTime } from '@renderer/lib/utils'
 import { PLATFORMS } from '@renderer/lib/platforms'
+import { accountTitle } from '@shared/accountDisplay'
 import { useAccountsStore } from '@renderer/store/accounts'
 import { useAppStore } from '@renderer/store/app'
+import { useTasksStore } from '@renderer/store/tasks'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { AccountStatusBadge } from '@renderer/components/status'
 import { TotpCell } from '@renderer/components/TotpCell'
@@ -86,6 +88,14 @@ export default function Accounts(): React.JSX.Element {
   const restore = useAccountsStore((s) => s.restore)
   const update = useAccountsStore((s) => s.update)
   const openDetail = useAppStore((s) => s.openDetail)
+  const tasks = useTasksStore((s) => s.tasks)
+  const activeAccountIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const t of tasks) {
+      if (t.status === 'running' || t.status === 'queued') ids.add(t.accountId)
+    }
+    return ids
+  }, [tasks])
 
   const [search, setSearch] = useState('')
   const [platform, setPlatform] = useState<Platform | 'all'>('all')
@@ -273,6 +283,12 @@ export default function Accounts(): React.JSX.Element {
       if (Object.keys(patch).length > 0) await update(a.id, patch)
     }
     toast.success(`已更新 ${list.length} 个账号`)
+  }
+
+  const bulkFavorite = async (favorite: boolean): Promise<void> => {
+    const list = selectedAccounts
+    for (const a of list) await update(a.id, { favorite })
+    toast.success(favorite ? `已标为主号 ${list.length} 个` : `已取消主号 ${list.length} 个`)
   }
 
   const bulkDelete = async (): Promise<void> => {
@@ -517,6 +533,15 @@ export default function Accounts(): React.JSX.Element {
             </SelectContent>
           </Select>
         )}
+        {viewMode === 'grid' && filtered.length > 0 && (
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Checkbox
+              checked={filtered.length > 0 && filtered.every((a) => selected.has(a.id))}
+              onCheckedChange={toggleAll}
+            />
+            全选当前
+          </label>
+        )}
         <button
           onClick={() => setFavOnly((v) => !v)}
           className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors ${
@@ -601,8 +626,14 @@ export default function Accounts(): React.JSX.Element {
         </Button>
       </div>
 
+      {selected.size === 0 && (
+        <p className="text-xs text-muted-foreground">
+          勾选卡片后可批量删除、标主号、改状态、导出。转动彩虹边框只出现在执行中的账号；金色边框表示主号。
+        </p>
+      )}
+
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card px-4 py-2.5">
           <span className="text-sm">
             已选 <span className="font-semibold">{selected.size}</span> 个账号
           </span>
@@ -625,6 +656,12 @@ export default function Accounts(): React.JSX.Element {
           <Button size="sm" variant="outline" onClick={() => setBulkEditOpen(true)}>
             <Layers className="h-4 w-4" /> 批量编辑
           </Button>
+          <Button size="sm" variant="outline" onClick={() => void bulkFavorite(true)}>
+            <Star className="h-4 w-4" /> 标为主号
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => void bulkFavorite(false)}>
+            取消主号
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="outline">
@@ -637,12 +674,7 @@ export default function Accounts(): React.JSX.Element {
               <DropdownMenuItem onClick={() => void bulkStatus('error')}>异常</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-destructive hover:text-destructive"
-            onClick={() => void bulkDelete()}
-          >
+          <Button size="sm" variant="destructive" onClick={() => void bulkDelete()}>
             <Trash2 className="h-4 w-4" /> 批量删除
           </Button>
           <div className="flex-1" />
@@ -671,6 +703,7 @@ export default function Accounts(): React.JSX.Element {
               <AccountCard
                 key={a.id}
                 account={a}
+                running={activeAccountIds.has(a.id)}
                 selected={selected.has(a.id)}
                 onToggleSelect={() => toggle(a.id)}
                 onOpenDetail={() => openDetail(a.id)}
@@ -748,7 +781,7 @@ export default function Accounts(): React.JSX.Element {
                       title="查看详情"
                     >
                       <div className="font-medium group-hover/detail:text-primary group-hover/detail:underline">
-                        {a.label}
+                        {accountTitle(a)}
                       </div>
                       <div className="text-xs text-muted-foreground">{a.email || a.username || '—'}</div>
                     </button>

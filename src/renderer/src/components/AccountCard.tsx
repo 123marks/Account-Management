@@ -1,6 +1,7 @@
 import React from 'react'
 import { Globe, Inbox, KeyRound, Pencil, Play, Star, Trash2 } from 'lucide-react'
 import type { Account } from '@shared/types'
+import { accountSubtitle, accountTitle } from '@shared/accountDisplay'
 import { relativeTime } from '@renderer/lib/utils'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { AccountStatusBadge } from '@renderer/components/status'
@@ -62,6 +63,7 @@ export interface AccountCardHandlers {
 export function AccountCard({
   account,
   selected,
+  running = false,
   onToggleSelect,
   onOpenDetail,
   onToggleFavorite,
@@ -74,28 +76,34 @@ export function AccountCard({
   onEditProxy,
   onPeekMail,
   onDelete
-}: { account: Account } & AccountCardHandlers): React.JSX.Element {
+}: { account: Account; running?: boolean } & AccountCardHandlers): React.JSX.Element {
   const a = account
   const revealed = usePrivacyStore((s) => s.revealed)
-  const subtitle = a.email || a.username || '—'
-  const maskedSubtitle =
-    !revealed && a.email.includes('@')
-      ? `${a.email.split('@')[0].slice(0, 2)}****@${a.email.split('@')[1]}`
-      : subtitle
+  const title = accountTitle(a)
+  const subtitle = accountSubtitle(a, revealed)
+  const frame = running ? 'account-card-running' : a.favorite ? 'account-card-main' : 'border'
   return (
     <div
       data-state={selected ? 'selected' : undefined}
-      className="account-card-frame group flex flex-col rounded-xl bg-card p-4 data-[state=selected]:account-card-frame-active"
+      className={`${frame} group flex flex-col rounded-xl bg-card p-4 data-[state=selected]:ring-2 data-[state=selected]:ring-primary/40`}
     >
       <div className="flex items-start gap-2.5">
         <Checkbox checked={selected} onCheckedChange={onToggleSelect} className="mt-1 shrink-0" />
         <PlatformGlyph platform={a.platform} size={34} />
         <button className="min-w-0 flex-1 text-left" onClick={onOpenDetail} title="查看详情">
           <div className="flex items-center gap-1.5">
-            <span className="truncate font-medium group-hover:text-primary">{a.label}</span>
+            <span className="truncate font-medium group-hover:text-primary">{title}</span>
             <AccountStatusBadge status={a.status} />
+            {a.favorite && (
+              <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                主号
+              </Badge>
+            )}
+            {running && (
+              <Badge className="h-5 px-1.5 text-[10px]">执行中</Badge>
+            )}
           </div>
-          <div className="truncate text-xs text-muted-foreground">{maskedSubtitle}</div>
+          <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
         </button>
         <button
           onClick={onToggleFavorite}
@@ -117,7 +125,7 @@ export function AccountCard({
         </div>
       )}
 
-      <div className="mt-3 grid grid-cols-4 gap-2 text-center text-[11px]">
+      <div className="mt-3 grid grid-cols-5 gap-1.5 text-center text-[11px]">
         <Indicator
           label="密码"
           ok={a.hasPassword}
@@ -135,6 +143,12 @@ export function AccountCard({
           ok={!!a.proxyUrl}
           title={a.proxyUrl ? '编辑代理' : '配置代理'}
           onClick={onEditProxy}
+        />
+        <Indicator
+          label="收信"
+          ok={a.hasMailboxPass || a.hasRefreshToken}
+          title={a.hasMailboxPass || a.hasRefreshToken ? '读取最近邮件' : '未配置收信凭证'}
+          onClick={onPeekMail}
         />
         <Indicator
           label="恢复"

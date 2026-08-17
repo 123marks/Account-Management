@@ -40,6 +40,8 @@
 | macOS (Intel) | `...-mac-x64.dmg` | `...-mac-x64.zip` |
 | Linux (x64) | `...-linux-x86_64.AppImage` | `...-linux-amd64.deb`、`...-linux-x64.tar.gz` |
 
+安装版（Windows setup / macOS dmg / Linux AppImage）启动后会检查 GitHub Releases，有新版本会自动下载并提示重启安装。便携版 / zip 需手动到 Releases 换包。
+
 运行前置条件：本机已安装 **Google Chrome**（自动化功能依赖它，应用本身不内置 Chromium）。
 
 安装包未做代码签名：Windows 出现 SmartScreen 时选「更多信息 → 仍要运行」；macOS 首次请右键 → 打开，或执行 `xattr -cr "/Applications/AI Account Manager.app"`。开发者购买证书后的配置方法见 [`docs/RELEASE.md`](docs/RELEASE.md#代码签名)。
@@ -133,7 +135,6 @@ Google / GitHub / X 等平台存在验证码、设备验证与风控机制。本
 ## 🗺️ 路线图
 
 - 更多平台的操作 flows（GitHub / X / YouTube 扩展）
-- 应用内自动更新（已具备 NSIS / DMG / AppImage 分发，尚未接入 electron-updater）
 - 国际化（i18n）
 - flow 冒烟测试与选择器健康检查
 

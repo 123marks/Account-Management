@@ -5,7 +5,14 @@ import type { ProviderSetting, ProviderSettingInput, ProviderTestResult } from '
 import { getDriver, type ProviderType } from '@shared/providers'
 import { parseProxy, socksAuthUnsupported, SOCKS_AUTH_MESSAGE } from '../automation/proxy'
 import { detectChrome } from '../automation/chrome'
-import { peekImapInbox, peekRecentMails, testMailboxDriver } from '../automation/mailbox'
+import { peekDriverInbox, peekImapInbox, peekOutlookGraphInbox, peekRecentMails, testMailboxDriver } from '../automation/mailbox'
+import {
+  MAILBOX_SERVICE_DRIVERS,
+  mailboxImapHost,
+  mailboxKindHelp,
+  suggestMailboxKind,
+  type MailboxKind
+} from '@shared/mailboxAccount'
 import { testSmsDriver } from '../automation/sms'
 import { countStockLines } from '../automation/mailbox/stock'
 import { getAccount, revealSecrets } from '../db/repositories/accounts'
@@ -249,15 +256,21 @@ async function testProxy(p: ProviderSetting): Promise<ProviderTestResult> {
   }
 }
 
-function imapHint(email: string, platform: string): { host: string; driver: 'imap' | 'icloud_imap' } {
-  const domain = (email.split('@')[1] || '').toLowerCase()
-  if (platform === 'apple' || /icloud\.com|me\.com|mac\.com/.test(domain)) {
-    return { host: 'imap.mail.me.com', driver: 'icloud_imap' }
+function resolveMailboxKind(platform: string, email: string, stored: string): MailboxKind {
+  return (stored || suggestMailboxKind(platform, email)) as MailboxKind
+}
+
+function imapDriverOf(kind: MailboxKind, email: string): 'imap' | 'icloud_imap' {
+  const host = mailboxImapHost(kind, email)
+  return kind === 'icloud_app' || host.includes('mail.me.com') ? 'icloud_imap' : 'imap'
+}
+
+function explainMailboxError(e: unknown, kind: MailboxKind): Error {
+  const raw = e instanceof Error ? e.message : String(e)
+  if (/Command failed|AUTHENTICATIONFAILED|Invalid credentials|LOGIN failed|AUTHENTICATE|auth/i.test(raw)) {
+    return new Error(`收信认证失败。${mailboxKindHelp(kind)}`)
   }
-  if (platform === 'microsoft' || /outlook\.|hotmail\.|live\.com/.test(domain)) {
-    return { host: 'outlook.office365.com', driver: 'imap' }
-  }
-  return { host: 'imap.gmail.com', driver: 'imap' }
+  return e instanceof Error ? e : new Error(raw)
 }
 
 export function peekProviderMails(providerId?: string): Promise<MailPreview[]> {
@@ -269,9 +282,45 @@ export async function peekAccountInbox(accountId: string): Promise<MailPreview[]
   if (!acc) throw new Error('账号不存在')
   const secrets = revealSecrets(accountId)
   if (!acc.email.includes('@')) throw new Error('该账号没有邮箱地址')
-  if (!secrets.password) throw new Error('该账号没有保存密码，无法 IMAP 读信')
-  const { host } = imapHint(acc.email, acc.platform)
-  return peekImapInbox(acc.email, secrets.password, host)
+  const kind = resolveMailboxKind(acc.platform, acc.email, acc.mailboxKind)
+  const pass = secrets.mailboxAppPassword || secrets.password
+  const namedKinds = new Set(['gmail_app', 'icloud_app', 'outlook_app', 'outlook_graph'])
+  if (
+    acc.mailboxKind &&
+    !namedKinds.has(acc.mailboxKind) &&
+    MAILBOX_SERVICE_DRIVERS.has(acc.mailboxKind) &&
+    secrets.mailboxAppPassword
+  ) {
+    const cfg = listProviders('mailbox').find((p) => p.driver === acc.mailboxKind && p.enabled)?.config ?? {}
+    try {
+      return await peekDriverInbox(acc.mailboxKind, acc.email, secrets.mailboxAppPassword, cfg)
+    } catch (e) {
+      throw explainMailboxError(e, kind)
+    }
+  }
+  if (kind === 'outlook_graph') {
+    if (!secrets.refreshToken || !acc.mailboxClientId) {
+      throw new Error('Outlook Graph 需要填写 Azure client_id 和 refresh token（编辑账号 → 收信方式）')
+    }
+    try {
+      return await peekOutlookGraphInbox({
+        email: acc.email,
+        password: pass || '',
+        clientId: acc.mailboxClientId,
+        refreshToken: secrets.refreshToken
+      })
+    } catch (e) {
+      throw explainMailboxError(e, kind)
+    }
+  }
+  if (!pass) {
+    throw new Error(kind ? mailboxKindHelp(kind) : '该账号没有收信密码。Gmail / iCloud 请填写应用专用密码，不要用登录密码。')
+  }
+  try {
+    return await peekImapInbox(acc.email, pass, mailboxImapHost(kind, acc.email))
+  } catch (e) {
+    throw explainMailboxError(e, kind)
+  }
 }
 
 export function useAccountAsMailbox(accountId: string): ProviderSetting {
@@ -279,8 +328,29 @@ export function useAccountAsMailbox(accountId: string): ProviderSetting {
   if (!acc) throw new Error('账号不存在')
   const secrets = revealSecrets(accountId)
   if (!acc.email.includes('@')) throw new Error('该账号没有邮箱地址')
-  if (!secrets.password) throw new Error('该账号没有保存密码')
-  const { host, driver } = imapHint(acc.email, acc.platform)
+  const kind = resolveMailboxKind(acc.platform, acc.email, acc.mailboxKind)
+  const pass = secrets.mailboxAppPassword || secrets.password
+  if (kind === 'outlook_graph') {
+    if (!secrets.refreshToken || !acc.mailboxClientId) {
+      throw new Error('Outlook Graph 需要填写 Azure client_id 和 refresh token')
+    }
+    return saveProvider({
+      type: 'mailbox',
+      driver: 'outlook_graph',
+      name: `账号 · ${acc.email}`,
+      enabled: true,
+      isDefault: listProviders('mailbox').length === 0,
+      config: {
+        email: acc.email,
+        password: pass || '',
+        clientId: acc.mailboxClientId,
+        refreshToken: secrets.refreshToken
+      }
+    })
+  }
+  if (!pass) throw new Error(kind ? mailboxKindHelp(kind) : '该账号没有收信密码')
+  const host = mailboxImapHost(kind, acc.email)
+  const driver = imapDriverOf(kind, acc.email)
   return saveProvider({
     type: 'mailbox',
     driver,
@@ -289,13 +359,13 @@ export function useAccountAsMailbox(accountId: string): ProviderSetting {
     isDefault: listProviders('mailbox').length === 0,
     config:
       driver === 'icloud_imap'
-        ? { user: acc.email, pass: secrets.password, plusAddressing: true }
+        ? { user: acc.email, pass, plusAddressing: true }
         : {
             host,
             port: 993,
             secure: true,
             user: acc.email,
-            pass: secrets.password,
+            pass,
             plusAddressing: true,
             mailbox: 'INBOX'
           }

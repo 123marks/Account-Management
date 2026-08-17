@@ -11,6 +11,8 @@ import { useLockStore } from '@renderer/store/lock'
 import { usePrivacyStore } from '@renderer/store/privacy'
 import { clearSecretsCache } from '@renderer/lib/secretsCache'
 import { applyTheme } from '@renderer/lib/theme'
+import { toast } from 'sonner'
+import { api } from '@renderer/lib/api'
 import Dashboard from '@renderer/pages/Dashboard'
 import Accounts from '@renderer/pages/Accounts'
 import Security from '@renderer/pages/Security'
@@ -50,6 +52,26 @@ export default function App(): React.JSX.Element {
       unLogs()
     }
   }, [init, loadAccounts, loadTasks, loadSecurity, loadLock, subscribeTasks, subscribeLogs])
+
+  useEffect(() => {
+    let last = ''
+    const un = api.updater.onChanged((s) => {
+      const key = `${s.state}:${'version' in s ? s.version : ''}`
+      if (key === last) return
+      last = key
+      if (s.state === 'available') toast.message(`发现新版本 v${s.version}，正在下载`)
+      if (s.state === 'downloaded') {
+        toast.success(`v${s.version} 已下载完成`, {
+          action: {
+            label: '重启安装',
+            onClick: () => void api.updater.install()
+          },
+          duration: 20000
+        })
+      }
+    })
+    return un
+  }, [])
 
   // Idle auto-lock: reset a timer on user activity; lock when it elapses.
   useEffect(() => {

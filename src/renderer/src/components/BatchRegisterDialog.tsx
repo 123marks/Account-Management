@@ -95,7 +95,9 @@ export function BatchRegisterDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>批量注册</DialogTitle>
-          <DialogDescription>邮箱注册或用已有 Google/GitHub 账号 OAuth 注册。</DialogDescription>
+          <DialogDescription>
+            任意可用邮箱都能注册各平台（Cursor / Windsurf / GitHub / Discord / OpenAI / X / Claude）。也可走已有 Google/GitHub OAuth。
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -144,8 +146,8 @@ export function BatchRegisterDialog({
               <span className="rounded bg-primary/15 px-2 py-0.5 text-primary">3 · 自动入库</span>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              每个账号使用独立 Chrome 配置与代理；遇人机验证会用「服务中心」的打码服务或提示手动完成。任务在「自动化」页查看，同平台自动排队。
-              GitHub 建议用苹果邮箱（iCloud IMAP / Hide My Email / iCloud Mail API），并关闭无头模式；提交按钮只会点 Create account，不会误点 Google。
+              每个账号使用独立 Chrome 配置与代理；入库后卡片标题就是完整邮箱。遇人机验证会用「服务中心」的打码服务或提示手动完成。
+              GitHub 建议用苹果邮箱。X / Discord 常要求手机号，可配合「服务中心」接码。选择器是尽力匹配，失败可看自动化日志截图。
             </p>
           </div>
 

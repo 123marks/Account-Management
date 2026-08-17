@@ -7,6 +7,7 @@ import { initCrypto } from './services/crypto'
 import { reconcileOrphanTasks } from './db/repositories/tasks'
 import { logger } from './services/logger'
 import { registerIpc } from './ipc'
+import { initUpdater, scheduleStartupCheck } from './services/updater'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -209,6 +210,7 @@ async function bootstrap(): Promise<void> {
     await initDatabase()
     reconcileOrphanTasks()
     registerIpc(() => mainWindow)
+    initUpdater()
     applyContentSecurityPolicy()
     logger.info('app', 'AI Account Manager 已启动')
   } catch (e) {
@@ -218,6 +220,7 @@ async function bootstrap(): Promise<void> {
     return
   }
   createWindow()
+  scheduleStartupCheck()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

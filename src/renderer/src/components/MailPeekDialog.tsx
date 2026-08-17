@@ -39,7 +39,9 @@ export function MailPeekDialog({
       setMails(list)
     } catch (e) {
       setMails([])
-      setError((e as Error).message)
+      setError(
+        (e as Error).message.replace(/^Error invoking remote method '[^']+':\s*(Error:\s*)?/i, '')
+      )
     } finally {
       setBusy(false)
     }
@@ -55,7 +57,7 @@ export function MailPeekDialog({
         <DialogHeader>
           <DialogTitle>最近邮件</DialogTitle>
           <DialogDescription>
-            读取收件箱正文（截断预览），用于确认能否收到验证码 / 验证链接。Gmail 需应用专用密码才能 IMAP。
+            读取收件箱正文（截断预览），用于确认能否收到验证码 / 验证链接。Gmail / iCloud 必须填应用专用密码；Outlook 可用应用密码或 Graph 令牌。请在「编辑账号 → 收信方式」填写。
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end">

@@ -18,6 +18,7 @@ import { useLockStore } from '@renderer/store/lock'
 import { applyTheme } from '@renderer/lib/theme'
 import { api } from '@renderer/lib/api'
 import { PasswordPromptDialog } from '@renderer/components/PasswordPromptDialog'
+import { UpdateCard } from '@renderer/components/UpdateCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -126,6 +127,7 @@ export default function SettingsPage(): React.JSX.Element | null {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <UpdateCard />
       <Card>
         <CardHeader>
           <CardTitle className="text-base">浏览器与并发</CardTitle>

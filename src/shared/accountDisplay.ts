@@ -1,0 +1,20 @@
+export function accountTitle(a: { label: string; email: string; username: string }): string {
+  return a.label.trim() || a.email.trim() || a.username.trim() || '未命名账号'
+}
+
+/** Milder mask: keep up to 4 local chars so temp-mail accounts stay recognizable. */
+export function maskEmail(email: string, revealed: boolean): string {
+  if (revealed || !email.includes('@')) return email
+  const [local, domain] = email.split('@')
+  if (!local || !domain) return email
+  const keep = Math.min(4, local.length)
+  return `${local.slice(0, keep)}****@${domain}`
+}
+
+export function accountSubtitle(
+  a: { email: string; username: string },
+  revealed: boolean
+): string {
+  if (a.email.includes('@')) return maskEmail(a.email, revealed)
+  return a.username || a.email || '—'
+}

@@ -182,6 +182,14 @@ const MIGRATIONS: Migration[] = [
       ALTER TABLE accounts ADD COLUMN oauth_source_account_id TEXT;
       CREATE INDEX idx_accounts_oauth_source ON accounts(oauth_source_account_id);
     `
+  },
+  {
+    version: 12,
+    sql: `
+      ALTER TABLE accounts ADD COLUMN mailbox_kind TEXT;
+      ALTER TABLE accounts ADD COLUMN mailbox_pass_enc TEXT;
+      ALTER TABLE accounts ADD COLUMN mailbox_client_id TEXT;
+    `
   }
 ]
 

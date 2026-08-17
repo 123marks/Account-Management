@@ -233,3 +233,39 @@ export async function peekImapInbox(
   )
   return mails.slice(0, 20).map(toPreview)
 }
+
+export async function peekDriverInbox(
+  driver: string,
+  email: string,
+  token: string,
+  config: Record<string, string | number | boolean> = {}
+): Promise<import('@shared/types').MailPreview[]> {
+  const mails = await driverOf(driver).fetchMails({ config }, { driver, email, token })
+  return mails.slice(0, 20).map(toPreview)
+}
+
+export async function peekOutlookGraphInbox(opts: {
+  email: string
+  password: string
+  clientId: string
+  refreshToken: string
+}): Promise<import('@shared/types').MailPreview[]> {
+  const token = JSON.stringify({
+    email: opts.email,
+    password: opts.password,
+    clientId: opts.clientId,
+    refreshToken: opts.refreshToken
+  })
+  const mails = await outlookGraphDriver.fetchMails(
+    {
+      config: {
+        email: opts.email,
+        password: opts.password,
+        clientId: opts.clientId,
+        refreshToken: opts.refreshToken
+      }
+    },
+    { driver: 'outlook_graph', email: opts.email, token }
+  )
+  return mails.slice(0, 20).map(toPreview)
+}

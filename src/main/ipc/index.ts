@@ -12,6 +12,8 @@ import { registerSecurityIpc } from './security.ipc'
 import { registerProvidersIpc } from './providers.ipc'
 import { registerLockIpc } from './lock.ipc'
 import { registerSmsIpc } from './sms.ipc'
+import { registerUpdaterIpc } from './updater.ipc'
+import { setUpdateEmitter } from '../services/updater'
 
 export function registerIpc(getWindow: () => BrowserWindow | null): void {
   registerAccountsIpc()
@@ -24,11 +26,15 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   registerProvidersIpc()
   registerLockIpc()
   registerSmsIpc()
+  registerUpdaterIpc()
 
   setLogEmitter((entry) => {
     getWindow()?.webContents.send(IPC.logs.new, entry)
   })
   setTaskEmitter((task) => {
     getWindow()?.webContents.send(IPC.automation.taskUpdated, task)
+  })
+  setUpdateEmitter((status) => {
+    getWindow()?.webContents.send(IPC.updater.changed, status)
   })
 }

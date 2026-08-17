@@ -21,6 +21,7 @@ export interface RegisterSpec {
   signupUrl: string
   firstNameSelectors?: string[]
   lastNameSelectors?: string[]
+  usernameSelectors?: string[]
   emailSelectors: string[]
   tosSelectors?: string[]
   passwordSelectors?: string[]
@@ -107,6 +108,10 @@ export function makeRegisterFlow(spec: RegisterSpec): Flow {
         if (spec.lastNameSelectors?.length) {
           const el = await firstVisible(page, spec.lastNameSelectors, 4000)
           if (el) await el.fill(name.last)
+        }
+        if (spec.usernameSelectors?.length) {
+          const el = await firstVisible(page, spec.usernameSelectors, 4000)
+          if (el) await el.fill(account.username || name.first)
         }
         const email = await firstVisible(page, spec.emailSelectors, 20000)
         if (!email) throw new Error('未找到邮箱输入框（该平台选择器可能需要调整）')
@@ -220,8 +225,65 @@ const WINDSURF_REGISTER: RegisterSpec = {
   successUrlIncludes: 'windsurf.com'
 }
 
+const DISCORD_REGISTER: RegisterSpec = {
+  platform: 'discord',
+  title: 'Discord 注册',
+  description: '用任意邮箱注册 Discord：填邮箱/用户名/密码 → 收验证邮件。遇手机号或人机验证时需手动。',
+  signupUrl: 'https://discord.com/register',
+  emailSelectors: ['input[name="email"]', 'input[type="email"]'],
+  usernameSelectors: ['input[name="username"]', 'input[autocomplete="username"]'],
+  passwordSelectors: ['input[name="password"]', 'input[type="password"]'],
+  submitSelectors: ['button[type="submit"]'],
+  codeSelectors: ['input[autocomplete="one-time-code"]', 'input[name="code"]', 'input[inputmode="numeric"]'],
+  emailKeyword: 'discord',
+  successUrlIncludes: 'discord.com'
+}
+
+const OPENAI_REGISTER: RegisterSpec = {
+  platform: 'openai',
+  title: 'OpenAI 注册',
+  description: '用任意邮箱注册 ChatGPT / OpenAI：填邮箱 → 设密码 → 收验证码或验证链接。',
+  signupUrl: 'https://auth.openai.com/create-account',
+  emailSelectors: ['input[type="email"]', 'input[name="email"]', 'input[name="username"]'],
+  passwordSelectors: ['input[type="password"]', 'input[name="password"]'],
+  submitSelectors: ['button[type="submit"]'],
+  codeSelectors: ['input[autocomplete="one-time-code"]', 'input[name="code"]', 'input[inputmode="numeric"]'],
+  emailKeyword: 'openai',
+  successUrlIncludes: 'openai.com'
+}
+
+const X_REGISTER: RegisterSpec = {
+  platform: 'x',
+  title: 'X 注册',
+  description: '用任意邮箱注册 X：流程为多步表单，选择器尽力匹配。常要求手机号，届时需接码或手动。',
+  signupUrl: 'https://x.com/i/flow/signup',
+  firstNameSelectors: ['input[name="name"]', 'input[autocomplete="name"]'],
+  emailSelectors: ['input[name="email"]', 'input[type="email"]', 'input[autocomplete="email"]'],
+  passwordSelectors: ['input[name="password"]', 'input[type="password"]'],
+  submitSelectors: ['button[type="submit"]', '[data-testid="ocfSignupNextLink"]'],
+  codeSelectors: ['input[name="verfication_code"]', 'input[name="code"]', 'input[inputmode="numeric"]'],
+  emailKeyword: 'twitter',
+  successUrlIncludes: 'x.com'
+}
+
+const ANTHROPIC_REGISTER: RegisterSpec = {
+  platform: 'anthropic',
+  title: 'Anthropic / Claude 注册',
+  description: '用任意邮箱注册 Claude：填邮箱 → 收验证码或验证链接。部分地区会跳转 Google OAuth。',
+  signupUrl: 'https://claude.ai/login',
+  emailSelectors: ['input[type="email"]', 'input[name="email"]'],
+  submitSelectors: ['button[type="submit"]'],
+  codeSelectors: ['input[autocomplete="one-time-code"]', 'input[name="code"]', 'input[inputmode="numeric"]'],
+  emailKeyword: 'anthropic',
+  successUrlIncludes: 'claude.ai'
+}
+
 export const registerFlows: Flow[] = [
   makeRegisterFlow(CURSOR_REGISTER),
   makeRegisterFlow(WINDSURF_REGISTER),
-  githubRegister
+  githubRegister,
+  makeRegisterFlow(DISCORD_REGISTER),
+  makeRegisterFlow(OPENAI_REGISTER),
+  makeRegisterFlow(X_REGISTER),
+  makeRegisterFlow(ANTHROPIC_REGISTER)
 ]

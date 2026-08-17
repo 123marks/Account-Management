@@ -70,7 +70,7 @@ npm version patch          # 或 minor / major，会自动改 package.json 并�
 git push origin main --tags
 ```
 
-推送 `v*` 标签后，Actions 会在 `windows-latest` / `macos-latest` / `ubuntu-latest` 三个 runner 上并行构建，并把全部安装包上传到对应的 GitHub Release，任何人都能直接下载。
+推送 `v*` 标签后，Actions 会在 `windows-latest` / `macos-latest` / `ubuntu-latest` 三个 runner 上并行构建，并把全部安装包以及 `latest.yml` / `latest-mac.yml` / `latest-linux.yml` 上传到对应的 GitHub Release。已安装的 **setup / dmg / AppImage** 会在启动时检查这些文件并提示更新（便携版需手动换包）。
 
 手动触发（`workflow_dispatch`）时只构建、不发版，产物以 Artifacts 形式保留 14 天，适合验证打包是否正常。
 

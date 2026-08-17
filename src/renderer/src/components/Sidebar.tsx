@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Bot, KeyRound, LayoutDashboard, Plug, ScrollText, Settings, Shield, Users } from 'lucide-react'
+import type { UpdateStatus } from '@shared/types'
 import { useAppStore, type Page } from '@renderer/store/app'
+import { api } from '@renderer/lib/api'
 import { Logo } from '@renderer/components/Logo'
 import { cn } from '@renderer/lib/utils'
 
@@ -18,6 +20,21 @@ const NAV: { key: Page; label: string; icon: typeof Users }[] = [
 export function Sidebar(): React.JSX.Element {
   const page = useAppStore((s) => s.page)
   const setPage = useAppStore((s) => s.setPage)
+  const [update, setUpdate] = useState<UpdateStatus>({ state: 'idle' })
+
+  useEffect(() => {
+    void api.updater.status().then(setUpdate)
+    return api.updater.onChanged(setUpdate)
+  }, [])
+
+  const updateHint =
+    update.state === 'downloaded'
+      ? `有更新 v${update.version}`
+      : update.state === 'downloading'
+        ? '正在下载更新'
+        : update.state === 'available'
+          ? `发现 v${update.version}`
+          : ''
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r bg-card/40">
@@ -55,6 +72,15 @@ export function Sidebar(): React.JSX.Element {
       <div className="px-5 py-4 text-[11px] text-muted-foreground">
         <div>v{__APP_VERSION__} · MIT</div>
         <div className="mt-0.5">本地数据 · 加密存储</div>
+        {updateHint && (
+          <button
+            type="button"
+            onClick={() => setPage('settings')}
+            className="mt-2 w-full rounded-md bg-primary/15 px-2 py-1 text-left text-[11px] font-medium text-primary hover:bg-primary/25"
+          >
+            {updateHint}
+          </button>
+        )}
       </div>
     </aside>
   )

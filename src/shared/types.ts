@@ -49,6 +49,10 @@ export interface Account {
   oauthProvider: string
   /** 授权源账号 id。 */
   oauthSourceAccountId: string
+  /** How this account receives mail: gmail_app / icloud_app / outlook_app / outlook_graph. */
+  mailboxKind: string
+  mailboxClientId: string
+  hasMailboxPass: boolean
 }
 
 /** A previous password (masked preview + timestamp); plaintext fetched on demand. */
@@ -64,6 +68,7 @@ export interface AccountSecrets {
   totpSecret: string | null
   backupCodes: string[]
   refreshToken: string | null
+  mailboxAppPassword: string | null
 }
 
 /** Payload for creating/updating an account. */
@@ -90,6 +95,9 @@ export interface AccountInput {
   notes?: string
   oauthProvider?: string
   oauthSourceAccountId?: string
+  mailboxKind?: string
+  mailboxAppPassword?: string | null
+  mailboxClientId?: string
 }
 
 export type TaskType =
@@ -381,6 +389,13 @@ export interface Api {
     saveFile(defaultName: string, content: string): Promise<string | null>
     cryptoAvailable(): Promise<boolean>
   }
+  updater: {
+    status(): Promise<UpdateStatus>
+    check(): Promise<UpdateStatus>
+    download(): Promise<void>
+    install(): Promise<void>
+    onChanged(cb: (status: UpdateStatus) => void): () => void
+  }
   sms: {
     rent(opts: { service: string; country?: string; accountId?: string }): Promise<SmsRental>
     waitCode(rentalId: string, timeoutMs?: number): Promise<string>
@@ -389,6 +404,16 @@ export interface Api {
     services(country?: string): Promise<SmsServiceOption[]>
   }
 }
+
+export type UpdateStatus =
+  | { state: 'idle' }
+  | { state: 'disabled'; message: string }
+  | { state: 'checking' }
+  | { state: 'available'; version: string; releaseNotes?: string }
+  | { state: 'not-available'; version: string }
+  | { state: 'downloading'; percent: number; bytesPerSecond: number }
+  | { state: 'downloaded'; version: string }
+  | { state: 'error'; message: string }
 
 export type SmsRentalStatus = 'pending' | 'code_received' | 'canceled' | 'expired' | 'finished'
 

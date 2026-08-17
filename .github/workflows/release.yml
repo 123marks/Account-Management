@@ -65,7 +65,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npx electron-builder ${{ matrix.extra }} --publish ${{ startsWith(github.ref, 'refs/tags/v') && 'always' || 'never' }}
+        # 不 publish，避免覆盖 x64 的 latest.yml 导致自动更新装错架构
+        run: npx electron-builder ${{ matrix.extra }} --publish never
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

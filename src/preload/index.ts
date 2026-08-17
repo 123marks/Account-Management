@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IPC } from '@shared/ipc'
-import type { Api, AutomationTask, LogEntry } from '@shared/types'
+import type { Api, AutomationTask, LogEntry, UpdateStatus } from '@shared/types'
 
 const api: Api = {
   accounts: {
@@ -95,6 +95,17 @@ const api: Api = {
     openLogDir: () => ipcRenderer.invoke(IPC.system.openLogDir),
     saveFile: (defaultName, content) => ipcRenderer.invoke(IPC.system.saveFile, defaultName, content),
     cryptoAvailable: () => ipcRenderer.invoke(IPC.system.cryptoAvailable)
+  },
+  updater: {
+    status: () => ipcRenderer.invoke(IPC.updater.status),
+    check: () => ipcRenderer.invoke(IPC.updater.check),
+    download: () => ipcRenderer.invoke(IPC.updater.download),
+    install: () => ipcRenderer.invoke(IPC.updater.install),
+    onChanged: (cb) => {
+      const listener = (_e: IpcRendererEvent, status: UpdateStatus): void => cb(status)
+      ipcRenderer.on(IPC.updater.changed, listener)
+      return () => ipcRenderer.removeListener(IPC.updater.changed, listener)
+    }
   },
   sms: {
     rent: (opts) => ipcRenderer.invoke(IPC.sms.rent, opts),

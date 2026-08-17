@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.3
+
+- 接入 electron-updater：GitHub 打 tag 发版后，安装版会自动检查并提示更新
+- 添加/编辑账号可按 Gmail / iCloud / Outlook 填写不同收信凭证
+- 邮箱注册平台扩展到 Discord / OpenAI / X / Claude；临时邮箱入库显示完整地址
+- 转动彩虹边框仅用于执行中账号，金色边框表示主号；批量删除/标主号更明显
+
 ## 0.2.2
 
 - 账号卡片渐变描边

@@ -42,6 +42,9 @@ interface AccountRow {
   password_updated_at: number | null
   oauth_provider?: string | null
   oauth_source_account_id?: string | null
+  mailbox_kind?: string | null
+  mailbox_pass_enc?: string | null
+  mailbox_client_id?: string | null
 }
 
 function safeParseObj(s: string): Record<string, string> {
@@ -95,7 +98,10 @@ function mapRow(r: AccountRow): Account {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     oauthProvider: r.oauth_provider ?? '',
-    oauthSourceAccountId: r.oauth_source_account_id ?? ''
+    oauthSourceAccountId: r.oauth_source_account_id ?? '',
+    mailboxKind: r.mailbox_kind ?? '',
+    mailboxClientId: r.mailbox_client_id ?? '',
+    hasMailboxPass: !!r.mailbox_pass_enc
   }
 }
 
@@ -135,6 +141,9 @@ function buildWrite(input: Partial<AccountInput>): Record<string, unknown> {
   if (input.notes !== undefined) w.notes = input.notes
   if (input.oauthProvider !== undefined) w.oauth_provider = input.oauthProvider || null
   if (input.oauthSourceAccountId !== undefined) w.oauth_source_account_id = input.oauthSourceAccountId || null
+  if (input.mailboxKind !== undefined) w.mailbox_kind = input.mailboxKind || null
+  if (input.mailboxAppPassword !== undefined) w.mailbox_pass_enc = encryptField(input.mailboxAppPassword)
+  if (input.mailboxClientId !== undefined) w.mailbox_client_id = input.mailboxClientId || null
   return w
 }
 
@@ -182,7 +191,10 @@ export function createAccount(input: AccountInput): Account {
     updated_at: now,
     password_updated_at: (w.password_updated_at as number | null) ?? (input.password ? now : null),
     oauth_provider: (w.oauth_provider as string | null) ?? null,
-    oauth_source_account_id: (w.oauth_source_account_id as string | null) ?? null
+    oauth_source_account_id: (w.oauth_source_account_id as string | null) ?? null,
+    mailbox_kind: (w.mailbox_kind as string | null) ?? null,
+    mailbox_pass_enc: (w.mailbox_pass_enc as string | null) ?? null,
+    mailbox_client_id: (w.mailbox_client_id as string | null) ?? null
   }
   getDb()
     .prepare(
@@ -192,14 +204,16 @@ export function createAccount(input: AccountInput): Account {
         custom_fields, group_name, tags, status, favorite, profile_dir, proxy_url,
         user_agent, locale, timezone, notes,
         last_used_at, created_at, updated_at, password_updated_at,
-        oauth_provider, oauth_source_account_id
+        oauth_provider, oauth_source_account_id,
+        mailbox_kind, mailbox_pass_enc, mailbox_client_id
       ) VALUES (
         @id, @platform, @label, @username, @email, @password_enc, @totp_secret_enc,
         @recovery_email, @recovery_phone, @backup_codes_enc, @refresh_token_enc,
         @custom_fields, @group_name, @tags, @status, @favorite, @profile_dir, @proxy_url,
         @user_agent, @locale, @timezone, @notes,
         @last_used_at, @created_at, @updated_at, @password_updated_at,
-        @oauth_provider, @oauth_source_account_id
+        @oauth_provider, @oauth_source_account_id,
+        @mailbox_kind, @mailbox_pass_enc, @mailbox_client_id
       )`
     )
     .run(record)
@@ -331,7 +345,8 @@ export function revealSecrets(id: string): AccountSecrets {
     backupCodes: r.backup_codes_enc
       ? (JSON.parse(decryptField(r.backup_codes_enc) ?? '[]') as string[])
       : [],
-    refreshToken: decryptField(r.refresh_token_enc)
+    refreshToken: decryptField(r.refresh_token_enc),
+    mailboxAppPassword: decryptField(r.mailbox_pass_enc)
   }
 }
 
@@ -370,7 +385,10 @@ export function exportAll(ids?: string[]): string {
     userAgent: r.user_agent ?? '',
     locale: r.locale ?? '',
     timezone: r.timezone ?? '',
-    notes: r.notes
+    notes: r.notes,
+    mailboxKind: r.mailbox_kind ?? '',
+    mailboxAppPassword: decryptField(r.mailbox_pass_enc),
+    mailboxClientId: r.mailbox_client_id ?? ''
   }))
   return JSON.stringify({ version: 1, exportedAt: Date.now(), accounts }, null, 2)
 }
@@ -403,7 +421,10 @@ export function importJson(json: string): number {
         userAgent: a.userAgent ?? '',
         locale: a.locale ?? '',
         timezone: a.timezone ?? '',
-        notes: a.notes ?? ''
+        notes: a.notes ?? '',
+        mailboxKind: a.mailboxKind ?? '',
+        mailboxAppPassword: a.mailboxAppPassword ?? null,
+        mailboxClientId: a.mailboxClientId ?? ''
       })
       count++
     }

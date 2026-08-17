@@ -76,6 +76,9 @@ export function CloneAccountDialog({
           proxyUrl: account.proxyUrl,
           status: 'active',
           favorite: false,
+          mailboxKind: copyCreds ? account.mailboxKind : '',
+          mailboxAppPassword: copyCreds ? secrets?.mailboxAppPassword ?? null : null,
+          mailboxClientId: copyCreds ? account.mailboxClientId : '',
           userAgent: id.userAgent,
           locale: id.locale,
           timezone: id.timezone

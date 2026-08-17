@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Info, Rocket, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'
-import type { GeneratedInbox, Platform, RegisterDraft } from '@shared/types'
+import type { GeneratedInbox, GoogleSignupMode, Platform, RegisterDraft } from '@shared/types'
 import { emailDomain } from '@shared/accountDisplay'
+import { GENDER_OPTIONS, MONTH_OPTIONS, draftIssues, isGoogleFamily, syncDraftIdentity } from '@shared/registerProfile'
 import { api } from '@renderer/lib/api'
 import { platformMeta } from '@renderer/lib/platforms'
 import { useAppStore } from '@renderer/store/app'
@@ -29,10 +30,12 @@ import {
 
 function platformHint(platform: Platform | ''): string {
   if (platform === 'google' || platform === 'youtube') {
-    return '选 Google / YouTube 是去该网站注册，登录邮箱可以是任意域名（临时邮箱、iCloud、Outlook），不是必须 @gmail.com。'
+    return 'Google 是多步向导：姓名 → 生日/性别 → 自建 @gmail.com 或使用已有邮箱 → 密码+确认密码。预览里每一项都会原样填进对应步骤，不会再随机改。'
+  }
+  if (platform === 'github') {
+    return 'GitHub 是单页表单：邮箱 + 密码 + 用户名 + 国家，只点 Create account。预览用户名按 GitHub 规则生成，不要填邮箱前缀。'
   }
   if (platform === 'apple') return 'Apple ID 可用任意邮箱，风控强，建议关无头。'
-  if (platform === 'github') return 'GitHub 建议用苹果邮箱或已验证的长效邮箱。'
   if (platform === 'x' || platform === 'discord') return '常要求手机号，请先配好接码或准备手动。'
   return '目标平台和收信邮箱是两回事：平台是要注册的网站，邮箱只负责收验证码。'
 }
@@ -129,6 +132,13 @@ export function BatchRegisterDialog({
 
   const confirm = async (): Promise<void> => {
     if (!platform) return
+    if (mode === 'email') {
+      const issues = drafts.flatMap((d, i) => draftIssues(platform, d).map((msg) => `#${i + 1} ${msg}`))
+      if (issues.length) {
+        toast.error(issues[0])
+        return
+      }
+    }
     setBusy(true)
     try {
       const r =
@@ -151,7 +161,21 @@ export function BatchRegisterDialog({
   }
 
   const patchDraft = (i: number, patch: Partial<RegisterDraft>): void => {
-    setDrafts((rows) => rows.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
+    if (!platform) return
+    setDrafts((rows) =>
+      rows.map((row, idx) => {
+        if (idx !== i) return row
+        const next = { ...row, ...patch }
+        if (patch.password && !patch.confirmPassword && row.password === row.confirmPassword) {
+          next.confirmPassword = patch.password
+        }
+        const synced = syncDraftIdentity(platform, next)
+        if (!patch.label && (row.label === row.loginEmail || row.label === row.email)) {
+          synced.label = synced.loginEmail
+        }
+        return synced
+      })
+    )
   }
 
   const emailReady =
@@ -161,6 +185,10 @@ export function BatchRegisterDialog({
         ? inboxIds.length > 0
         : mailboxAccountIds.length > 0
 
+  const confirmIssues = platform
+    ? drafts.flatMap((d, i) => draftIssues(platform, d).map((msg) => `#${i + 1} ${msg}`))
+    : []
+
   return (
     <Dialog
       open={open}
@@ -169,12 +197,12 @@ export function BatchRegisterDialog({
         onOpenChange(v)
       }}
     >
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>{step === 'confirm' ? '确认注册信息' : '批量注册'}</DialogTitle>
           <DialogDescription>
             {step === 'confirm'
-              ? '核对平台、收信邮箱、用户名和密码后再提交。邮箱域名不会被改成平台官方后缀。'
+              ? '下面每一项都会原样写进注册页。登录邮箱和收信邮箱分开显示，不会互相改后缀。'
               : '先选要注册的网站和收信邮箱，预览确认后再开跑。'}
           </DialogDescription>
         </DialogHeader>
@@ -354,32 +382,160 @@ export function BatchRegisterDialog({
           <div className="space-y-3">
             <p className="text-sm">
               将注册 <span className="font-medium">{platform ? platformMeta(platform).label : ''}</span>
-              ，共 {drafts.length} 个。收信域名以表格为准。
+              ，共 {drafts.length} 个。登录邮箱以「登录」栏为准，收信邮箱只负责收验证码。
             </p>
-            <div className="max-h-[46vh] space-y-2 overflow-y-auto pr-1">
+            <div className="max-h-[52vh] space-y-3 overflow-y-auto pr-1">
               {drafts.map((d, i) => (
-                <div key={`${d.inboxId}-${d.email}-${i}`} className="space-y-2 rounded-lg border p-3">
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="font-mono text-foreground">{d.email}</span>
-                    <span>{emailDomain(d.email) || '无域名'} · {d.driver}</span>
+                <div key={`${d.inboxId}-${d.email}-${i}`} className="space-y-3 rounded-lg border p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span>
+                      收信 <span className="font-mono text-foreground">{d.email}</span>
+                    </span>
+                    <span>
+                      {emailDomain(d.email) || '无域名'} · {d.driver}
+                    </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Input
-                      value={d.label}
-                      onChange={(e) => patchDraft(i, { label: e.target.value })}
-                      placeholder="标签"
-                    />
-                    <Input
-                      value={d.username}
-                      onChange={(e) => patchDraft(i, { username: e.target.value })}
-                      placeholder="用户名"
-                    />
-                    <Input
-                      value={d.password}
-                      onChange={(e) => patchDraft(i, { password: e.target.value })}
-                      placeholder="密码"
-                      className="font-mono"
-                    />
+                  <div className="rounded-md bg-secondary/50 px-2.5 py-1.5 font-mono text-sm">
+                    登录 {d.loginEmail}
+                  </div>
+                  {d.loginEmail !== d.email && (
+                    <p className="text-xs text-muted-foreground">
+                      登录域名是 {emailDomain(d.loginEmail) || '—'}，收信域名是 {emailDomain(d.email) || '—'}
+                      ，两者本来就可以不同。
+                    </p>
+                  )}
+                  {platform && draftIssues(platform, d).length > 0 && (
+                    <p className="text-xs text-destructive">{draftIssues(platform, d).join('；')}</p>
+                  )}
+                  {d.confirmPassword && d.confirmPassword !== d.password && (
+                    <p className="text-xs text-destructive">两次密码不一致</p>
+                  )}
+
+                  {platform && isGoogleFamily(platform) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">邮箱方式</Label>
+                        <Select
+                          value={d.googleMode}
+                          onValueChange={(v) => patchDraft(i, { googleMode: v as GoogleSignupMode })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="gmail">自建 @gmail.com</SelectItem>
+                            <SelectItem value="existing">使用上面的收信邮箱登录</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {d.googleMode === 'gmail' && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Gmail 用户名</Label>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={d.username}
+                              onChange={(e) => patchDraft(i, { username: e.target.value })}
+                              className="font-mono"
+                            />
+                            <span className="shrink-0 text-xs text-muted-foreground">@gmail.com</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {platform && isGoogleFamily(platform) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">名 First name</Label>
+                        <Input value={d.firstName} onChange={(e) => patchDraft(i, { firstName: e.target.value })} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">姓 Last name</Label>
+                        <Input value={d.lastName} onChange={(e) => patchDraft(i, { lastName: e.target.value })} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">月</Label>
+                        <Select value={d.birthMonth} onValueChange={(v) => patchDraft(i, { birthMonth: v })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MONTH_OPTIONS.map((m) => (
+                              <SelectItem key={m.value} value={m.value}>
+                                {m.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">日</Label>
+                          <Input value={d.birthDay} onChange={(e) => patchDraft(i, { birthDay: e.target.value })} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">年</Label>
+                          <Input value={d.birthYear} onChange={(e) => patchDraft(i, { birthYear: e.target.value })} />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">性别</Label>
+                        <Select value={d.gender} onValueChange={(v) => patchDraft(i, { gender: v })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {GENDER_OPTIONS.map((g) => (
+                              <SelectItem key={g.value} value={g.value}>
+                                {g.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {!(platform && isGoogleFamily(platform) && d.googleMode === 'gmail') && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">{platform === 'github' ? 'GitHub 用户名' : '用户名'}</Label>
+                        <Input
+                          value={d.username}
+                          onChange={(e) => patchDraft(i, { username: e.target.value })}
+                          className="font-mono"
+                        />
+                      </div>
+                    )}
+                    {platform === 'github' && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">国家 / 地区</Label>
+                        <Input value={d.country} onChange={(e) => patchDraft(i, { country: e.target.value })} />
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      <Label className="text-xs">密码</Label>
+                      <Input
+                        value={d.password}
+                        onChange={(e) => patchDraft(i, { password: e.target.value })}
+                        className="font-mono"
+                      />
+                    </div>
+                    {platform && (isGoogleFamily(platform) || platform === 'microsoft' || platform === 'apple') ? (
+                      <div className="space-y-1">
+                        <Label className="text-xs">确认密码</Label>
+                        <Input
+                          value={d.confirmPassword}
+                          onChange={(e) => patchDraft(i, { confirmPassword: e.target.value })}
+                          className="font-mono"
+                        />
+                      </div>
+                    ) : null}
+                    <div className="space-y-1">
+                      <Label className="text-xs">标签</Label>
+                      <Input value={d.label} onChange={(e) => patchDraft(i, { label: e.target.value })} />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -393,7 +549,7 @@ export function BatchRegisterDialog({
               <Button variant="outline" onClick={() => setStep('setup')} disabled={busy}>
                 返回修改
               </Button>
-              <Button onClick={() => void confirm()} disabled={busy || drafts.length === 0}>
+              <Button onClick={() => void confirm()} disabled={busy || drafts.length === 0 || confirmIssues.length > 0}>
                 <Rocket className="h-4 w-4" /> {busy ? '提交中…' : `确认注册 (${drafts.length})`}
               </Button>
             </>

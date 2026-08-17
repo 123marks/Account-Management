@@ -41,3 +41,34 @@ export async function firstVisible(
   }
   return null
 }
+
+/** Fill a React / Material controlled input and read the value back. */
+export async function fillControlled(el: Locator, value: string): Promise<boolean> {
+  await el.click({ timeout: 5000 })
+  await el.fill('')
+  await el.fill(value)
+  if ((await el.inputValue().catch(() => '')) === value) return true
+  await el.evaluate((node, v) => {
+    const input = node as { value: string; dispatchEvent: (ev: unknown) => void }
+    const g = globalThis as unknown as {
+      HTMLInputElement: { prototype: object }
+      Event: new (type: string, init?: { bubbles?: boolean }) => unknown
+    }
+    const desc = Object.getOwnPropertyDescriptor(g.HTMLInputElement.prototype, 'value')
+    desc?.set?.call(input, v)
+    input.dispatchEvent(new g.Event('input', { bubbles: true }))
+    input.dispatchEvent(new g.Event('change', { bubbles: true }))
+  }, value)
+  return (await el.inputValue().catch(() => '')) === value
+}
+
+export async function typeInto(
+  page: Page,
+  selectors: string[],
+  value: string,
+  timeout = 8000
+): Promise<boolean> {
+  const el = await firstVisible(page, selectors, timeout)
+  if (!el) return false
+  return fillControlled(el, value)
+}

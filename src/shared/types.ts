@@ -429,14 +429,28 @@ export interface GeneratedInbox {
   tags: string[]
 }
 
+export type GoogleSignupMode = 'gmail' | 'existing'
+
 export interface RegisterDraft {
   inboxId: string
   mailboxAccountId: string
+  /** 收信 / 恢复邮箱，域名以生成结果为准。 */
   email: string
+  /** 实际用来登录目标平台的邮箱。Google 自建 Gmail 时是 xxx@gmail.com。 */
+  loginEmail: string
   driver: string
   password: string
+  confirmPassword: string
   username: string
   label: string
+  firstName: string
+  lastName: string
+  birthYear: string
+  birthMonth: string
+  birthDay: string
+  gender: string
+  country: string
+  googleMode: GoogleSignupMode
 }
 
 export interface RegisterPrepareInput {

@@ -1,4 +1,14 @@
 import type { AutomationTask, Platform, RegisterDraft, RegisterPrepareInput } from '@shared/types'
+import {
+  draftIssues,
+  gmailLocal,
+  githubUsername,
+  isGoogleFamily,
+  loginEmailOf,
+  randomAdultBirth,
+  randomPersonName,
+  syncDraftIdentity
+} from '@shared/registerProfile'
 import { enqueue } from './engine'
 import { createInbox } from './mailbox'
 import { setTaskSecret } from './secrets'
@@ -16,21 +26,29 @@ export interface RegisterBatchResult {
   errors: string[]
 }
 
-function draftFromInbox(
-  platform: Platform,
-  inboxId: string,
-  email: string,
-  driver: string
-): RegisterDraft {
-  const local = email.split('@')[0] || 'user'
+function draftFromInbox(platform: Platform, inboxId: string, email: string, driver: string): RegisterDraft {
+  const { firstName, lastName } = randomPersonName()
+  const birth = randomAdultBirth()
+  const googleMode = isGoogleFamily(platform) ? 'gmail' : 'existing'
+  const username = platform === 'github' ? githubUsername() : googleMode === 'gmail' ? gmailLocal(firstName, lastName) : email.split('@')[0] || 'user'
+  const password = genPassword(platform === 'github' ? 18 : 16)
+  const loginEmail = loginEmailOf(platform, { email, username, googleMode })
   return {
     inboxId,
     mailboxAccountId: '',
     email,
+    loginEmail,
     driver,
-    password: genPassword(platform === 'github' ? 18 : 16),
-    username: local,
-    label: email
+    password,
+    confirmPassword: password,
+    username,
+    label: loginEmail,
+    firstName,
+    lastName,
+    ...birth,
+    gender: '3',
+    country: 'United States of America',
+    googleMode
   }
 }
 
@@ -55,16 +73,8 @@ export async function prepareRegistrations(input: RegisterPrepareInput): Promise
       if (!account.email.includes('@')) throw new Error(`${account.label || accountId} 没有邮箱`)
       const token = secrets.mailboxAppPassword || secrets.password || secrets.refreshToken || ''
       if (!token) throw new Error(`${account.email} 没有收信凭证`)
-      const local = account.email.split('@')[0] || 'user'
-      drafts.push({
-        inboxId: '',
-        mailboxAccountId: account.id,
-        email: account.email,
-        driver: account.mailboxKind || 'imap',
-        password: genPassword(platform === 'github' ? 18 : 16),
-        username: local,
-        label: account.email
-      })
+      const base = draftFromInbox(platform, '', account.email, account.mailboxKind || 'imap')
+      drafts.push({ ...base, mailboxAccountId: account.id, label: account.email === base.loginEmail ? account.email : base.loginEmail })
     }
     return drafts
   }
@@ -105,32 +115,61 @@ export async function confirmRegistrations(
 ): Promise<RegisterBatchResult> {
   const created: AutomationTask[] = []
   const errors: string[] = []
-  for (const [i, draft] of drafts.entries()) {
+  for (const [i, raw] of drafts.entries()) {
     try {
+      const draft = syncDraftIdentity(platform, raw)
+      const issues = draftIssues(platform, draft)
+      if (issues.length) throw new Error(issues.join('；'))
       const box = resolveMailbox(draft)
-      const local = (draft.username || box.email.split('@')[0] || 'user').trim()
+      const loginEmail = (draft.loginEmail || box.email).trim()
+      const username = (draft.username || loginEmail.split('@')[0] || 'user').trim()
       const account = createAccount({
         platform,
-        label: (draft.label || box.email).trim(),
-        username: local,
-        email: box.email,
+        label: (draft.label || loginEmail).trim(),
+        username,
+        email: loginEmail,
         password: draft.password,
+        recoveryEmail: box.email !== loginEmail ? box.email : '',
         status: 'active',
         tags: ['auto-register'],
-        notes: `待注册 ${platform} · 收信 ${box.email} · 驱动 ${box.driver}`,
+        notes: `待注册 ${platform} · 登录 ${loginEmail} · 收信 ${box.email} · 驱动 ${box.driver}`,
         mailboxKind: box.driver,
-        mailboxAppPassword: box.token
+        mailboxAppPassword: box.token,
+        customFields: {
+          firstName: draft.firstName,
+          lastName: draft.lastName,
+          birthYear: draft.birthYear,
+          birthMonth: draft.birthMonth,
+          birthDay: draft.birthDay,
+          gender: draft.gender,
+          country: draft.country,
+          googleMode: draft.googleMode
+        }
       })
       if (draft.inboxId) linkInboxById(draft.inboxId, account.id)
       const tasks = enqueue({
         accountIds: [account.id],
         type: 'register',
-        params: { mailboxDriver: box.driver }
+        params: {
+          mailboxDriver: box.driver,
+          mailboxEmail: box.email,
+          loginEmail,
+          username,
+          firstName: draft.firstName,
+          lastName: draft.lastName,
+          birthYear: draft.birthYear,
+          birthMonth: draft.birthMonth,
+          birthDay: draft.birthDay,
+          gender: draft.gender,
+          country: draft.country,
+          googleMode: draft.googleMode,
+          confirmPassword: draft.password
+        }
       })
       for (const t of tasks) setTaskSecret(t.id, 'mailboxToken', box.token)
       created.push(...tasks)
     } catch (e) {
-      const msg = `#${i + 1} ${draft.email}: ${(e as Error).message}`
+      const msg = `#${i + 1} ${raw.loginEmail || raw.email}: ${(e as Error).message}`
       errors.push(msg)
       logger.warn('automation', `注册确认失败 ${msg}`)
     }

@@ -1,6 +1,7 @@
 import type { Page } from 'playwright-core'
 import type { Flow, FlowResult, StepContext } from '../types'
-import { firstVisible, genPassword } from './util'
+import { githubUsername } from '@shared/registerProfile'
+import { fillControlled, firstVisible, genPassword } from './util'
 import { waitForCode } from '../mailbox'
 import { getTaskSecret } from '../secrets'
 import { getActiveCaptcha, solveFunCaptcha, solveToken } from '../captcha'
@@ -9,14 +10,6 @@ const SIGNUP = 'https://github.com/signup'
 const ARKOSE_PK = '747B83EC-2CA3-43AD-A7DF-701F286FBABA'
 const ARKOSE_SUB = 'github-api.arkoselabs.com'
 
-const ADJ = ['cool', 'fast', 'blue', 'neo', 'sky', 'dev', 'byte', 'code', 'pixel', 'quiet']
-const NOUN = ['fox', 'wolf', 'owl', 'bear', 'hawk', 'lion', 'frog', 'deer', 'nova', 'leaf']
-
-function randUsername(): string {
-  const a = ADJ[Math.floor(Math.random() * ADJ.length)]
-  const n = NOUN[Math.floor(Math.random() * NOUN.length)]
-  return `${a}${n}${1000 + Math.floor(Math.random() * 9000)}`
-}
 
 async function hasArkose(page: Page): Promise<boolean> {
   if (page.frames().some((f) => /octocaptcha|arkoselabs|funcaptcha/i.test(f.url()))) return true
@@ -183,8 +176,9 @@ export const githubRegister: Flow = {
     if (!driver || !token) throw new Error('缺少邮箱令牌，请通过「批量注册」发起')
 
     const password = secrets.password && secrets.password.length >= 15 ? secrets.password : genPassword(18)
-    let username = account.username.trim() || randUsername()
-    const country = String(ctx.params.country || 'United States of America')
+    let username = account.username.trim() || githubUsername()
+    const country = String(ctx.params.country || account.customFields.country || 'United States of America')
+    ctx.log('info', `按预览填表：邮箱=${account.email} 用户名=${username} 国家=${country}`)
 
     await ctx.step('打开 GitHub 注册页', async () => {
       await page.goto(SIGNUP, { waitUntil: 'domcontentloaded', timeout: 60000 })
@@ -199,18 +193,18 @@ export const githubRegister: Flow = {
         20000
       )
       if (!emailEl) throw new Error('未找到邮箱输入框。GitHub 页面结构可能已变化')
-      await emailEl.fill(account.email)
+      if (!(await fillControlled(emailEl, account.email))) throw new Error(`邮箱未能写入：${account.email}`)
       const pwEl = await firstVisible(page, ['input#password', 'input[name="user[password]"]', 'input[type="password"]'], 8000)
       if (!pwEl) throw new Error('未找到密码输入框')
-      await pwEl.fill(password)
+      if (!(await fillControlled(pwEl, password))) throw new Error('密码未能写入')
       for (let i = 0; i < 3; i++) {
         const userEl = await firstVisible(page, ['input#login', 'input[name="user[login]"]'], 8000)
         if (!userEl) throw new Error('未找到用户名输入框')
-        await userEl.fill(username)
+        if (!(await fillControlled(userEl, username))) throw new Error(`用户名未能写入：${username}`)
         await page.waitForTimeout(2200)
         const body = ((await page.textContent('body').catch(() => '')) || '').toLowerCase()
         if (/unavailable|already taken|not available|is already/.test(body)) {
-          username = randUsername()
+          username = githubUsername()
           ctx.log('info', '用户名已被占用，已换一个')
           continue
         }
@@ -222,6 +216,13 @@ export const githubRegister: Flow = {
     await ctx.step('选择国家/地区', async () => {
       const ok = await selectCountry(page, country)
       if (!ok) ctx.log('warn', '未能自动选择国家，若 Create account 仍禁用请手动点选')
+    })
+
+    await ctx.step('取消营销订阅', async () => {
+      const cb = page.locator('input#user_signup\\[marketing_consent\\], input[name="user_signup[marketing_consent]"]').first()
+      if ((await cb.count()) > 0 && (await cb.isChecked().catch(() => false))) {
+        await cb.uncheck().catch(() => undefined)
+      }
     })
     ctx.setProgress(45)
 

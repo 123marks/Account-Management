@@ -299,7 +299,8 @@ export async function peekAccountInbox(accountId: string): Promise<MailPreview[]
   ) {
     const cfg = listProviders('mailbox').find((p) => p.driver === acc.mailboxKind && p.enabled)?.config ?? {}
     try {
-      return await peekDriverInbox(acc.mailboxKind, acc.email, secrets.mailboxAppPassword, cfg)
+      const peekEmail = acc.recoveryEmail.includes('@') ? acc.recoveryEmail : acc.email
+      return await peekDriverInbox(acc.mailboxKind, peekEmail, secrets.mailboxAppPassword, cfg)
     } catch (e) {
       throw explainMailboxError(e, kind)
     }

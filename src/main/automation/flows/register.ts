@@ -1,5 +1,6 @@
 import type { Flow, FlowResult, StepContext } from '../types'
 import { githubRegister } from './githubRegister'
+import { googleRegister, youtubeRegister } from './googleRegister'
 import type { Platform } from '@shared/types'
 import { firstVisible } from './util'
 import { waitForVerify } from '../mailbox'
@@ -278,21 +279,6 @@ const ANTHROPIC_REGISTER: RegisterSpec = {
   successUrlIncludes: 'claude.ai'
 }
 
-const GOOGLE_REGISTER: RegisterSpec = {
-  platform: 'google',
-  title: 'Google 注册',
-  description: '用任意邮箱注册 Google 账号。流程多步且常有人机验证 / 手机号，需关无头或接码。',
-  signupUrl: 'https://accounts.google.com/signup',
-  firstNameSelectors: ['input[name="firstName"]', 'input[id="firstName"]'],
-  lastNameSelectors: ['input[name="lastName"]', 'input[id="lastName"]'],
-  emailSelectors: ['input[type="email"]', 'input[name="Username"]', 'input[name="email"]'],
-  passwordSelectors: ['input[name="Passwd"]', 'input[name="ConfirmPasswd"]', 'input[type="password"]'],
-  confirmPasswordSelectors: ['input[name="ConfirmPasswd"]'],
-  submitSelectors: ['button', '#collectNameNext', '#collectUsernameNext'],
-  codeSelectors: ['input[name="code"]', 'input[id="code"]', 'input[autocomplete="one-time-code"]'],
-  emailKeyword: 'google',
-  successUrlIncludes: 'myaccount.google.com'
-}
 
 const MICROSOFT_REGISTER: RegisterSpec = {
   platform: 'microsoft',
@@ -307,21 +293,6 @@ const MICROSOFT_REGISTER: RegisterSpec = {
   successUrlIncludes: 'microsoft.com'
 }
 
-const YOUTUBE_REGISTER: RegisterSpec = {
-  platform: 'youtube',
-  title: 'YouTube 注册',
-  description: 'YouTube 走 Google 账号。用任意邮箱走 Google 注册流程，成功后即可用于 YouTube。',
-  signupUrl: 'https://accounts.google.com/signup',
-  firstNameSelectors: ['input[name="firstName"]', 'input[id="firstName"]'],
-  lastNameSelectors: ['input[name="lastName"]', 'input[id="lastName"]'],
-  emailSelectors: ['input[type="email"]', 'input[name="Username"]', 'input[name="email"]'],
-  passwordSelectors: ['input[name="Passwd"]', 'input[type="password"]'],
-  confirmPasswordSelectors: ['input[name="ConfirmPasswd"]'],
-  submitSelectors: ['button'],
-  codeSelectors: ['input[name="code"]', 'input[autocomplete="one-time-code"]'],
-  emailKeyword: 'google',
-  successUrlIncludes: 'google.com'
-}
 
 const APPLE_REGISTER: RegisterSpec = {
   platform: 'apple',
@@ -339,12 +310,12 @@ const APPLE_REGISTER: RegisterSpec = {
 }
 
 export const registerFlows: Flow[] = [
-  makeRegisterFlow(GOOGLE_REGISTER),
+  googleRegister,
   githubRegister,
   makeRegisterFlow(MICROSOFT_REGISTER),
   makeRegisterFlow(APPLE_REGISTER),
   makeRegisterFlow(X_REGISTER),
-  makeRegisterFlow(YOUTUBE_REGISTER),
+  youtubeRegister,
   makeRegisterFlow(DISCORD_REGISTER),
   makeRegisterFlow(OPENAI_REGISTER),
   makeRegisterFlow(ANTHROPIC_REGISTER),

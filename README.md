@@ -12,7 +12,7 @@
 
 ---
 
-## 功能特性
+## ✨ 功能特性
 
 - **多账号集中管理**：Google / GitHub / X / YouTube / OpenAI / Cursor 等，支持分组、标签、搜索、批量选择。
 - **凭据加密存储**：密码、2FA 密钥、备用码、Refresh Token 使用 **AES-256-GCM** 加密，主密钥由操作系统钥匙串（`safeStorage`）封存。
@@ -24,7 +24,7 @@
 - **并发任务队列**：可配置并发，实时进度、可取消、失败自动截图。
 - **导入 / 导出**：账号数据一键备份与迁移。
 
-## 下载安装
+## ⬇️ 下载安装
 
 前往 [**Releases**](https://github.com/123marks/Account-Management/releases) 下载对应系统的安装包：
 
@@ -40,7 +40,7 @@
 
 安装包未做代码签名：Windows 出现 SmartScreen 时选「更多信息 → 仍要运行」；macOS 首次请右键 → 打开，或执行 `xattr -cr "/Applications/AI Account Manager.app"`。开发者购买证书后的配置方法见 [`docs/RELEASE.md`](docs/RELEASE.md#代码签名)。
 
-## 交流群
+## 💬 交流群
 
 扫码或搜索群号加入，反馈问题、交流用法。群名 **AI-AccountManager 交流群**，群号 **`1070080897`**。
 
@@ -48,7 +48,7 @@
   <img src="docs/qq-group.png" alt="QQ 交流群 1070080897" width="360" />
 </p>
 
-## 技术栈
+## 🧱 技术栈
 
 | 层 | 技术 |
 |---|---|
@@ -60,7 +60,7 @@
 | 2FA | otpauth · jsqr（二维码） |
 | 自动化 | playwright-core（驱动本地 Chrome） |
 
-## 快速开始
+## 🚀 快速开始
 
 前置：Node.js ≥ 20、本机安装 **Google Chrome**。
 
@@ -83,7 +83,7 @@ npm run dist:linux # 打 Linux AppImage / deb / tar.gz
 
 > 数据库使用 sql.js（WASM），**无需任何 C++/原生编译**，`npm install` 开箱即用。
 
-## 界面
+## 📸 界面
 
 首次运行会在系统 userData 目录初始化本地数据库与加密主密钥。主要页面：
 
@@ -95,7 +95,7 @@ npm run dist:linux # 打 Linux AppImage / deb / tar.gz
 - **日志**：实时结构化日志与过滤
 - **设置**：并发数、无头模式、浏览器接入方式、Chrome 路径、主题
 
-## 项目结构与文档
+## 📂 项目结构与文档
 
 - 架构设计与实现规范：[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - 开发者 / 交接文档：[`docs/HANDOFF.md`](docs/HANDOFF.md)
@@ -112,7 +112,7 @@ src/
   renderer/   React 前端：components(ui) / pages / store / lib
 ```
 
-## 安全与合规
+## 🔐 安全与合规
 
 - 所有数据仅保存在**本机**，不上传任何服务器。
 - 敏感字段加密存储；明文主密钥仅驻留主进程内存，渲染层无法获取。
@@ -120,17 +120,17 @@ src/
 
 **责任使用**：本工具仅用于管理**你本人拥有或已获授权**的账号，须遵守各平台服务条款与所在地法律法规，不得用于任何未授权访问或滥用。详见 [`docs/SECURITY.md`](docs/SECURITY.md)。
 
-## 关于自动化的说明
+## ⚠️ 关于自动化的说明
 
 Google / GitHub / X 等平台存在验证码、设备验证与风控机制。本工具以“驱动本地真实登录态的 Chrome”为主，尽量降低被拦概率，但**不保证 100% 成功**，也不包含任何绕过验证码/风控的手段。若遇到挑战，请关闭无头模式，在弹出的浏览器中手动完成一次登录后重试。平台改版可能导致个别自动化流程失效，欢迎社区共同维护（见 `docs/HANDOFF.md` 的扩展指南）。
 
-## 路线图
+## 🗺️ 路线图
 
 - 更多平台的操作 flows（GitHub / X / YouTube 扩展）
 - 应用内自动更新（已具备 NSIS / DMG / AppImage 分发，尚未接入 electron-updater）
 - 国际化（i18n）
 - flow 冒烟测试与选择器健康检查
 
-## 许可证
+## 📄 许可证
 
 [MIT](LICENSE)

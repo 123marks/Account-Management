@@ -11,6 +11,7 @@ import {
 import { api } from '@renderer/lib/api'
 import { useProvidersStore } from '@renderer/store/providers'
 import { ProviderConfigDialog } from '@renderer/components/ProviderConfigDialog'
+import { SmsRentalsPanel } from '@renderer/components/SmsRentalsPanel'
 import { Card, CardContent } from '@renderer/components/ui/card'
 import { EmptyState } from '@renderer/components/ui/empty-state'
 import { SkeletonRows } from '@renderer/components/ui/skeleton'
@@ -138,7 +139,10 @@ export default function Providers(): React.JSX.Element {
             {drivers.map((d) => (
               <DropdownMenuItem key={d.driver} onClick={() => openAdd(d.driver)}>
                 <div>
-                  <div>{d.label}</div>
+                  <div>
+                    {d.label}
+                    {d.unimplemented ? '（未接入）' : ''}
+                  </div>
                   <div className="text-xs text-muted-foreground">{d.description}</div>
                 </div>
               </DropdownMenuItem>
@@ -174,6 +178,7 @@ export default function Providers(): React.JSX.Element {
                           </Badge>
                         )}
                         {!p.enabled && <Badge variant="secondary">已停用</Badge>}
+                        {def?.unimplemented && <Badge variant="outline">未接入</Badge>}
                       </div>
                       <div className="text-xs text-muted-foreground">{def?.label ?? p.driver}</div>
                     </div>
@@ -220,6 +225,8 @@ export default function Providers(): React.JSX.Element {
           )}
         </CardContent>
       </Card>
+
+      {tab === 'sms' && <SmsRentalsPanel />}
 
       <ProviderConfigDialog
         open={dialog.open}

@@ -217,6 +217,24 @@ export function AccountDetailDrawer(): React.JSX.Element {
                 <div className="divide-y">
                   <Field label="用户名" value={account.username} />
                   <Field label="邮箱" value={account.email} />
+                  {account.oauthSourceAccountId && (
+                    <Field
+                      label="OAuth 来源"
+                      value={`${account.oauthProvider || 'oauth'} · ${
+                        accounts.find((x) => x.id === account.oauthSourceAccountId)?.label ||
+                        account.oauthSourceAccountId.slice(0, 8)
+                      }`}
+                    />
+                  )}
+                  {accounts.some((x) => x.oauthSourceAccountId === account.id) && (
+                    <Field
+                      label="已授权注册"
+                      value={accounts
+                        .filter((x) => x.oauthSourceAccountId === account.id)
+                        .map((x) => x.label || x.platform)
+                        .join('、')}
+                    />
+                  )}
                   <Field label="分组" value={account.groupName} />
                   <Field
                     label="标签"

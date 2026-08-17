@@ -137,7 +137,7 @@ npm run dist:win
 
 ## 打包体积与依赖
 
-- `playwright-core` 与 `sql.js` 通过 `asarUnpack` 解包到 `resources/app.asar.unpacked/`，否则 wasm 加载与浏览器驱动会在 asar 内失败。
+- `playwright-core`、`sql.js`、`imapflow`、`nodemailer`、`mailparser` 通过 `asarUnpack` 解包到 `resources/app.asar.unpacked/`，否则 wasm / IMAP 会在 asar 内失败。
 - 安装包约 100 MB，安装后约 320 MB（Electron 运行时占大头）。
 - 应用**不内置 Chromium**，自动化功能依赖用户本机已安装的 Google Chrome。
 

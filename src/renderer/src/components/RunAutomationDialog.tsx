@@ -116,6 +116,35 @@ export function RunAutomationDialog({
             </p>
           </div>
 
+          {platform === 'google' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const chain: TaskType[] = [
+                  'check_login',
+                  'change_password',
+                  'change_phone',
+                  'enable_2fa',
+                  'fetch_backup_codes'
+                ]
+                setBusy(true)
+                try {
+                  for (const type of chain) {
+                    await enqueue({ accountIds: accounts.map((a) => a.id), type, params: {} })
+                  }
+                  toast.success('已提交完整维护队列（按顺序执行，同账号会自动串行）')
+                  onOpenChange(false)
+                  setPage('automation')
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            >
+              完整维护（登录→改密→手机→2FA→备用码）
+            </Button>
+          )}
+
           <div className="space-y-1.5">
             <Label>操作</Label>
             <Select value={actionKey} onValueChange={(v) => setActionKey(v as TaskType)}>

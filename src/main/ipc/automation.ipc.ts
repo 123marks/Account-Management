@@ -1,9 +1,9 @@
 import { ipcMain } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { EnqueueRequest, Platform } from '@shared/types'
-import { actionsFor, registerablePlatforms } from '../automation/flows/registry'
+import { actionsFor, oauthRegisterablePlatforms, registerablePlatforms } from '../automation/flows/registry'
 import { cancel, enqueue, retry, isAccountBusy } from '../automation/engine'
-import { enqueueRegistrations } from '../automation/registration'
+import { enqueueOauthRegistrations, enqueueRegistrations } from '../automation/registration'
 import {
   launchManualProfile,
   isProfileBusy,
@@ -27,6 +27,12 @@ export function registerAutomationIpc(): void {
   ipcMain.handle(IPC.automation.registerPlatforms, () => registerablePlatforms())
   ipcMain.handle(IPC.automation.registerBatch, (_e, platform: Platform, count: number) =>
     enqueueRegistrations(platform, count)
+  )
+  ipcMain.handle(IPC.automation.oauthPlatforms, () => oauthRegisterablePlatforms())
+  ipcMain.handle(
+    IPC.automation.registerOauth,
+    (_e, platform: Platform, sourceAccountIds: string[], oauthProvider: 'google' | 'github') =>
+      enqueueOauthRegistrations(platform, sourceAccountIds, oauthProvider)
   )
   ipcMain.handle(IPC.automation.launchProfile, async (_e, accountId: string) => {
     const acc = getAccount(accountId)

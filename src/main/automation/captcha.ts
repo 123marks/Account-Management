@@ -1,7 +1,7 @@
 import type { Page } from 'playwright-core'
 import { listProviders } from '../services/providers'
 
-export type CaptchaKind = 'turnstile' | 'recaptcha_v2' | 'hcaptcha' | 'unknown'
+export type CaptchaKind = 'turnstile' | 'recaptcha_v2' | 'hcaptcha' | 'funcaptcha' | 'unknown'
 
 export interface ActiveCaptcha {
   driver: string
@@ -32,6 +32,16 @@ export async function detectHumanChallenge(page: Page): Promise<ChallengeInfo> {
     return null
   }
   try {
+    if (
+      page.frames().some((f) => /octocaptcha|arkoselabs|funcaptcha/i.test(f.url())) ||
+      (await page.locator('iframe[src*="octocaptcha"], iframe[src*="arkoselabs"]').count()) > 0
+    ) {
+      return {
+        present: true,
+        kind: 'funcaptcha',
+        sitekey: '747B83EC-2CA3-43AD-A7DF-701F286FBABA'
+      }
+    }
     const found =
       (await probe(
         '.cf-turnstile, iframe[src*="challenges.cloudflare.com"], [class*="turnstile"][data-sitekey]',
@@ -69,8 +79,48 @@ export async function solveToken(opts: SolveOpts): Promise<string | null> {
   if (!active || active.driver === 'manual') return null
   const apiKey = String(active.config.apiKey || '').trim()
   if (!apiKey) return null
+  if (opts.kind === 'funcaptcha') return solveFunCaptcha(apiKey, active.driver, opts)
   if (active.driver === 'twocaptcha') return solveTwoCaptcha(apiKey, opts)
   if (active.driver === 'yescaptcha') return solveYesCaptcha(apiKey, opts)
+  return null
+}
+
+export async function solveFunCaptcha(
+  apiKey: string,
+  driver: string,
+  opts: SolveOpts & { subdomain?: string; blob?: string }
+): Promise<string | null> {
+  const subdomain = opts.subdomain || 'github-api.arkoselabs.com'
+  const task: Record<string, unknown> = {
+    type: driver === 'twocaptcha' ? 'FunCaptchaTaskProxyless' : 'FunCaptchaTaskProxyless',
+    websiteURL: opts.url,
+    websitePublicKey: opts.sitekey,
+    funcaptchaApiJSSubdomain: `https://${subdomain}`
+  }
+  if (opts.blob) task.data = JSON.stringify({ blob: opts.blob })
+  const endpoint =
+    driver === 'twocaptcha' ? 'https://api.2captcha.com' : 'https://api.yescaptcha.com'
+  const create = (await (
+    await fetch(`${endpoint}/createTask`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ clientKey: apiKey, task })
+    })
+  ).json()) as { errorId?: number; taskId?: string | number; errorDescription?: string }
+  if (create.errorId || !create.taskId) return null
+  const deadline = Date.now() + (opts.timeoutMs ?? 180000)
+  while (Date.now() < deadline) {
+    await sleep(6000)
+    const poll = (await (
+      await fetch(`${endpoint}/getTaskResult`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ clientKey: apiKey, taskId: create.taskId })
+      })
+    ).json()) as { status?: string; solution?: { token?: string }; errorId?: number }
+    if (poll.status === 'ready') return poll.solution?.token ?? null
+    if (poll.errorId) return null
+  }
   return null
 }
 

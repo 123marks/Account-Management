@@ -50,6 +50,9 @@ const api: Api = {
     retry: (taskId) => ipcRenderer.invoke(IPC.automation.retry, taskId),
     registerPlatforms: () => ipcRenderer.invoke(IPC.automation.registerPlatforms),
     registerBatch: (platform, count) => ipcRenderer.invoke(IPC.automation.registerBatch, platform, count),
+    oauthPlatforms: () => ipcRenderer.invoke(IPC.automation.oauthPlatforms),
+    registerOauth: (platform, sourceAccountIds, oauthProvider) =>
+      ipcRenderer.invoke(IPC.automation.registerOauth, platform, sourceAccountIds, oauthProvider),
     launchProfile: (accountId) => ipcRenderer.invoke(IPC.automation.launchProfile, accountId),
     checkProxy: (accountId) => ipcRenderer.invoke(IPC.automation.checkProxy, accountId),
     exportCookies: (accountId) => ipcRenderer.invoke(IPC.automation.exportCookies, accountId),
@@ -89,6 +92,13 @@ const api: Api = {
     openLogDir: () => ipcRenderer.invoke(IPC.system.openLogDir),
     saveFile: (defaultName, content) => ipcRenderer.invoke(IPC.system.saveFile, defaultName, content),
     cryptoAvailable: () => ipcRenderer.invoke(IPC.system.cryptoAvailable)
+  },
+  sms: {
+    rent: (opts) => ipcRenderer.invoke(IPC.sms.rent, opts),
+    waitCode: (rentalId, timeoutMs) => ipcRenderer.invoke(IPC.sms.waitCode, rentalId, timeoutMs),
+    cancel: (rentalId) => ipcRenderer.invoke(IPC.sms.cancel, rentalId),
+    list: () => ipcRenderer.invoke(IPC.sms.list),
+    services: (country) => ipcRenderer.invoke(IPC.sms.services, country)
   }
 }
 

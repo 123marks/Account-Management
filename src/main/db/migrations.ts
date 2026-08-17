@@ -150,6 +150,38 @@ const MIGRATIONS: Migration[] = [
     // Soft-delete: deleting an account moves it to a recycle bin (deleted_at set)
     // instead of destroying credentials immediately, so it can be restored.
     sql: `ALTER TABLE accounts ADD COLUMN deleted_at INTEGER;`
+  },
+  {
+    version: 10,
+    sql: `
+      CREATE TABLE sms_rentals (
+        id TEXT PRIMARY KEY,
+        provider_id TEXT NOT NULL,
+        driver TEXT NOT NULL,
+        remote_id TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        country_code TEXT NOT NULL DEFAULT '',
+        service TEXT NOT NULL DEFAULT '',
+        account_id TEXT,
+        task_id TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        code TEXT,
+        cost REAL,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE INDEX idx_sms_rentals_status ON sms_rentals(status);
+      CREATE INDEX idx_sms_rentals_account ON sms_rentals(account_id);
+    `
+  },
+  {
+    version: 11,
+    sql: `
+      ALTER TABLE accounts ADD COLUMN oauth_provider TEXT;
+      ALTER TABLE accounts ADD COLUMN oauth_source_account_id TEXT;
+      CREATE INDEX idx_accounts_oauth_source ON accounts(oauth_source_account_id);
+    `
   }
 ]
 

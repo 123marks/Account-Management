@@ -40,6 +40,8 @@ interface AccountRow {
   created_at: number
   updated_at: number
   password_updated_at: number | null
+  oauth_provider?: string | null
+  oauth_source_account_id?: string | null
 }
 
 function safeParseObj(s: string): Record<string, string> {
@@ -91,7 +93,9 @@ function mapRow(r: AccountRow): Account {
     notes: r.notes,
     lastUsedAt: r.last_used_at,
     createdAt: r.created_at,
-    updatedAt: r.updated_at
+    updatedAt: r.updated_at,
+    oauthProvider: r.oauth_provider ?? '',
+    oauthSourceAccountId: r.oauth_source_account_id ?? ''
   }
 }
 
@@ -129,6 +133,8 @@ function buildWrite(input: Partial<AccountInput>): Record<string, unknown> {
   if (input.locale !== undefined) w.locale = input.locale || null
   if (input.timezone !== undefined) w.timezone = input.timezone || null
   if (input.notes !== undefined) w.notes = input.notes
+  if (input.oauthProvider !== undefined) w.oauth_provider = input.oauthProvider || null
+  if (input.oauthSourceAccountId !== undefined) w.oauth_source_account_id = input.oauthSourceAccountId || null
   return w
 }
 
@@ -174,7 +180,9 @@ export function createAccount(input: AccountInput): Account {
     last_used_at: null as number | null,
     created_at: now,
     updated_at: now,
-    password_updated_at: (w.password_updated_at as number | null) ?? (input.password ? now : null)
+    password_updated_at: (w.password_updated_at as number | null) ?? (input.password ? now : null),
+    oauth_provider: (w.oauth_provider as string | null) ?? null,
+    oauth_source_account_id: (w.oauth_source_account_id as string | null) ?? null
   }
   getDb()
     .prepare(
@@ -183,13 +191,15 @@ export function createAccount(input: AccountInput): Account {
         recovery_email, recovery_phone, backup_codes_enc, refresh_token_enc,
         custom_fields, group_name, tags, status, favorite, profile_dir, proxy_url,
         user_agent, locale, timezone, notes,
-        last_used_at, created_at, updated_at, password_updated_at
+        last_used_at, created_at, updated_at, password_updated_at,
+        oauth_provider, oauth_source_account_id
       ) VALUES (
         @id, @platform, @label, @username, @email, @password_enc, @totp_secret_enc,
         @recovery_email, @recovery_phone, @backup_codes_enc, @refresh_token_enc,
         @custom_fields, @group_name, @tags, @status, @favorite, @profile_dir, @proxy_url,
         @user_agent, @locale, @timezone, @notes,
-        @last_used_at, @created_at, @updated_at, @password_updated_at
+        @last_used_at, @created_at, @updated_at, @password_updated_at,
+        @oauth_provider, @oauth_source_account_id
       )`
     )
     .run(record)

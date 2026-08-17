@@ -17,7 +17,12 @@ const TASK_LABELS: Record<TaskType, string> = {
   change_password: '修改密码',
   change_recovery: '修改恢复信息',
   manage_2fa: '两步验证',
-  register: '注册账号'
+  register: '注册账号',
+  register_oauth: 'OAuth 注册',
+  change_phone: '绑定手机号',
+  enable_2fa: '启用 2FA',
+  rotate_2fa: '轮换 2FA',
+  fetch_backup_codes: '拉取备用码'
 }
 
 const AFTER_LABELS: Record<string, string> = {

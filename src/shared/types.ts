@@ -45,6 +45,10 @@ export interface Account {
   lastUsedAt: number | null
   createdAt: number
   updatedAt: number
+  /** OAuth 注册来源平台（google / github），空表示非 OAuth。 */
+  oauthProvider: string
+  /** 授权源账号 id。 */
+  oauthSourceAccountId: string
 }
 
 /** A previous password (masked preview + timestamp); plaintext fetched on demand. */
@@ -84,6 +88,8 @@ export interface AccountInput {
   locale?: string
   timezone?: string
   notes?: string
+  oauthProvider?: string
+  oauthSourceAccountId?: string
 }
 
 export type TaskType =
@@ -92,6 +98,11 @@ export type TaskType =
   | 'change_recovery'
   | 'manage_2fa'
   | 'register'
+  | 'register_oauth'
+  | 'change_phone'
+  | 'enable_2fa'
+  | 'rotate_2fa'
+  | 'fetch_backup_codes'
 
 export type TaskStatus = 'queued' | 'running' | 'success' | 'failed' | 'canceled'
 
@@ -314,6 +325,12 @@ export interface Api {
     retry(taskId: string): Promise<AutomationTask | null>
     registerPlatforms(): Promise<Platform[]>
     registerBatch(platform: Platform, count: number): Promise<{ created: AutomationTask[]; errors: string[] }>
+    oauthPlatforms(): Promise<Platform[]>
+    registerOauth(
+      platform: Platform,
+      sourceAccountIds: string[],
+      oauthProvider: 'google' | 'github'
+    ): Promise<{ created: AutomationTask[]; errors: string[] }>
     /** Open the account's isolated Chrome profile (headed, with its proxy) for manual use. */
     launchProfile(accountId: string): Promise<{ ok: boolean; message: string }>
     /** Probe the account's effective proxy and return the exit IP. */
@@ -351,4 +368,37 @@ export interface Api {
     saveFile(defaultName: string, content: string): Promise<string | null>
     cryptoAvailable(): Promise<boolean>
   }
+  sms: {
+    rent(opts: { service: string; country?: string; accountId?: string }): Promise<SmsRental>
+    waitCode(rentalId: string, timeoutMs?: number): Promise<string>
+    cancel(rentalId: string): Promise<void>
+    list(): Promise<SmsRental[]>
+    services(country?: string): Promise<SmsServiceOption[]>
+  }
+}
+
+export type SmsRentalStatus = 'pending' | 'code_received' | 'canceled' | 'expired' | 'finished'
+
+export interface SmsRental {
+  id: string
+  remoteId: string
+  phone: string
+  localNumber: string
+  countryCode: string
+  driver: string
+  service: string
+  status: SmsRentalStatus
+  code: string | null
+  createdAt: number
+  expiresAt: number | null
+  cost?: number
+  accountId?: string
+  taskId?: string
+}
+
+export interface SmsServiceOption {
+  code: string
+  label: string
+  available?: number
+  price?: number
 }

@@ -4,17 +4,41 @@ import type { Account } from '@shared/types'
 import { relativeTime } from '@renderer/lib/utils'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { AccountStatusBadge } from '@renderer/components/status'
+import { usePrivacyStore } from '@renderer/store/privacy'
 import { Badge } from '@renderer/components/ui/badge'
 import { Button } from '@renderer/components/ui/button'
 import { Checkbox } from '@renderer/components/ui/checkbox'
 
-function Indicator({ label, ok }: { label: string; ok: boolean }): React.JSX.Element {
-  return (
-    <div className="rounded-md border bg-secondary/30 py-1">
+function Indicator({
+  label,
+  ok,
+  title,
+  onClick
+}: {
+  label: string
+  ok: boolean
+  title: string
+  onClick?: () => void
+}): React.JSX.Element {
+  const cls = `rounded-md border bg-secondary/30 py-1 ${onClick ? 'cursor-pointer hover:border-primary/50' : 'cursor-default'}`
+  const inner = (
+    <>
       <div
         className={`mx-auto mb-0.5 h-1.5 w-1.5 rounded-full ${ok ? 'bg-success' : 'bg-muted-foreground/25'}`}
       />
       <div className={ok ? 'text-foreground/80' : 'text-muted-foreground'}>{label}</div>
+    </>
+  )
+  if (onClick) {
+    return (
+      <button type="button" title={title} onClick={onClick} className={cls}>
+        {inner}
+      </button>
+    )
+  }
+  return (
+    <div title={title} className={cls}>
+      {inner}
     </div>
   )
 }
@@ -28,6 +52,9 @@ export interface AccountCardHandlers {
   onRun: () => void
   onLaunch: () => void
   onCopyPassword: () => void
+  onCopyTotp: () => void
+  onCopyRecovery: () => void
+  onEditProxy: () => void
   onDelete: () => void
 }
 
@@ -41,9 +68,18 @@ export function AccountCard({
   onRun,
   onLaunch,
   onCopyPassword,
+  onCopyTotp,
+  onCopyRecovery,
+  onEditProxy,
   onDelete
 }: { account: Account } & AccountCardHandlers): React.JSX.Element {
   const a = account
+  const revealed = usePrivacyStore((s) => s.revealed)
+  const subtitle = a.email || a.username || '—'
+  const maskedSubtitle =
+    !revealed && a.email.includes('@')
+      ? `${a.email.split('@')[0].slice(0, 2)}****@${a.email.split('@')[1]}`
+      : subtitle
   return (
     <div
       data-state={selected ? 'selected' : undefined}
@@ -57,7 +93,7 @@ export function AccountCard({
             <span className="truncate font-medium group-hover:text-primary">{a.label}</span>
             <AccountStatusBadge status={a.status} />
           </div>
-          <div className="truncate text-xs text-muted-foreground">{a.email || a.username || '—'}</div>
+          <div className="truncate text-xs text-muted-foreground">{maskedSubtitle}</div>
         </button>
         <button
           onClick={onToggleFavorite}
@@ -80,10 +116,30 @@ export function AccountCard({
       )}
 
       <div className="mt-3 grid grid-cols-4 gap-2 text-center text-[11px]">
-        <Indicator label="密码" ok={a.hasPassword} />
-        <Indicator label="2FA" ok={a.hasTotp} />
-        <Indicator label="代理" ok={!!a.proxyUrl} />
-        <Indicator label="恢复" ok={!!a.recoveryEmail || !!a.recoveryPhone} />
+        <Indicator
+          label="密码"
+          ok={a.hasPassword}
+          title={a.hasPassword ? '复制密码' : '未设置密码'}
+          onClick={a.hasPassword ? onCopyPassword : undefined}
+        />
+        <Indicator
+          label="2FA"
+          ok={a.hasTotp}
+          title={a.hasTotp ? '复制验证码' : '未配置 2FA'}
+          onClick={a.hasTotp ? onCopyTotp : undefined}
+        />
+        <Indicator
+          label="代理"
+          ok={!!a.proxyUrl}
+          title={a.proxyUrl ? '编辑代理' : '配置代理'}
+          onClick={onEditProxy}
+        />
+        <Indicator
+          label="恢复"
+          ok={!!a.recoveryEmail || !!a.recoveryPhone}
+          title={a.recoveryEmail || a.recoveryPhone ? '复制恢复信息' : '未设置恢复信息'}
+          onClick={a.recoveryEmail || a.recoveryPhone ? onCopyRecovery : undefined}
+        />
       </div>
 
       <div className="mt-3 flex items-center justify-between border-t pt-2.5">

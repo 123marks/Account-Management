@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from 'react'
+import { Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import type { TotpResult } from '@shared/types'
 import { api } from '@renderer/lib/api'
+import { usePrivacyStore } from '@renderer/store/privacy'
 
 export function TotpCell({
   accountId,
-  hasTotp
+  hasTotp,
+  onEditSecret
 }: {
   accountId: string
   hasTotp: boolean
+  onEditSecret?: () => void
 }): React.JSX.Element {
+  const revealed = usePrivacyStore((s) => s.revealed)
   const [data, setData] = useState<TotpResult | null>(null)
 
   useEffect(() => {
@@ -36,36 +41,49 @@ export function TotpCell({
   const danger = data.remainingSeconds <= 5
 
   return (
-    <button
-      title="点击复制验证码"
-      aria-label="复制当前验证码"
-      onClick={() => {
-        void navigator.clipboard.writeText(data.code)
-        toast.success('验证码已复制')
-      }}
-      className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <svg width="22" height="22" viewBox="0 0 22 22" className="shrink-0 -rotate-90">
-        <circle cx="11" cy="11" r={R} fill="none" stroke="hsl(var(--muted))" strokeWidth="2.5" />
-        <circle
-          cx="11"
-          cy="11"
-          r={R}
-          fill="none"
-          stroke={danger ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeDasharray={C}
-          strokeDashoffset={C * (1 - frac)}
-          style={{ transition: 'stroke-dashoffset 1s linear' }}
-        />
-      </svg>
-      <span className="font-mono text-sm font-semibold tracking-widest tabular-nums">
-        {data.code.slice(0, 3)}&nbsp;{data.code.slice(3)}
-      </span>
-      <span className="w-4 text-right text-[11px] tabular-nums text-muted-foreground">
-        {data.remainingSeconds}
-      </span>
-    </button>
+    <span className="inline-flex items-center gap-1">
+      <button
+        title="点击复制验证码"
+        aria-label="复制当前验证码"
+        onClick={() => {
+          void navigator.clipboard.writeText(data.code)
+          toast.success('验证码已复制')
+        }}
+        className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <svg width="22" height="22" viewBox="0 0 22 22" className="shrink-0 -rotate-90">
+          <circle cx="11" cy="11" r={R} fill="none" stroke="hsl(var(--muted))" strokeWidth="2.5" />
+          <circle
+            cx="11"
+            cy="11"
+            r={R}
+            fill="none"
+            stroke={danger ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeDasharray={C}
+            strokeDashoffset={C * (1 - frac)}
+            style={{ transition: 'stroke-dashoffset 1s linear' }}
+          />
+        </svg>
+        <span className="font-mono text-sm font-semibold tracking-widest tabular-nums">
+          {revealed ? (
+            <>
+              {data.code.slice(0, 3)}&nbsp;{data.code.slice(3)}
+            </>
+          ) : (
+            '••• •••'
+          )}
+        </span>
+        <span className="w-4 text-right text-[11px] tabular-nums text-muted-foreground">
+          {data.remainingSeconds}
+        </span>
+      </button>
+      {onEditSecret && (
+        <button type="button" title="编辑 2FA 密钥" onClick={onEditSecret} className="text-muted-foreground/50">
+          <Pencil className="h-3 w-3" />
+        </button>
+      )}
+    </span>
   )
 }

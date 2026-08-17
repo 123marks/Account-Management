@@ -2,7 +2,7 @@ import type { AutomationTask, Platform } from '@shared/types'
 import { enqueue } from './engine'
 import { createInbox } from './mailbox'
 import { setTaskSecret } from './secrets'
-import { createAccount } from '../db/repositories/accounts'
+import { createAccount, getAccount } from '../db/repositories/accounts'
 import { genPassword } from './flows/util'
 import { logger } from '../services/logger'
 
@@ -29,7 +29,7 @@ export async function enqueueRegistrations(
   for (let i = 0; i < n; i++) {
     try {
       const inbox = await createInbox()
-      const password = genPassword(16)
+      const password = genPassword(platform === 'github' ? 18 : 16)
       const account = createAccount({
         platform,
         label: `${platform}-${inbox.email.split('@')[0]}`,
@@ -51,6 +51,41 @@ export async function enqueueRegistrations(
       const msg = `#${i + 1}: ${(e as Error).message}`
       errors.push(msg)
       logger.warn('automation', `注册入队失败 ${msg}`)
+    }
+  }
+  return { created, errors }
+}
+
+export async function enqueueOauthRegistrations(
+  platform: Platform,
+  sourceAccountIds: string[],
+  oauthProvider: 'google' | 'github'
+): Promise<RegisterBatchResult> {
+  const created: AutomationTask[] = []
+  const errors: string[] = []
+  for (const sourceId of sourceAccountIds) {
+    try {
+      const source = getAccount(sourceId)
+      if (!source) throw new Error('源账号不存在')
+      const account = createAccount({
+        platform,
+        label: `${platform}-${source.label || source.email.split('@')[0]}`,
+        username: '',
+        email: source.email,
+        status: 'active',
+        notes: `OAuth 待完成 · 源 ${source.label}`,
+        oauthProvider,
+        oauthSourceAccountId: source.id
+      })
+      created.push(
+        ...enqueue({
+          accountIds: [account.id],
+          type: 'register_oauth',
+          params: { oauthProvider, sourceAccountId: source.id }
+        })
+      )
+    } catch (e) {
+      errors.push(`${sourceId}: ${(e as Error).message}`)
     }
   }
   return { created, errors }

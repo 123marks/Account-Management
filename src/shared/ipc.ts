@@ -46,6 +46,8 @@ export const IPC = {
     retry: 'automation:retry',
     registerBatch: 'automation:registerBatch',
     registerPlatforms: 'automation:registerPlatforms',
+    oauthPlatforms: 'automation:oauth-platforms',
+    registerOauth: 'automation:register-oauth',
     launchProfile: 'automation:launch-profile',
     checkProxy: 'automation:check-proxy',
     exportCookies: 'automation:export-cookies',
@@ -77,5 +79,12 @@ export const IPC = {
     openLogDir: 'system:open-log-dir',
     saveFile: 'system:save-file',
     cryptoAvailable: 'system:crypto-available'
+  },
+  sms: {
+    rent: 'sms:rent',
+    waitCode: 'sms:wait-code',
+    cancel: 'sms:cancel',
+    list: 'sms:list',
+    services: 'sms:services'
   }
 } as const

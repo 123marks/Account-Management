@@ -1,7 +1,7 @@
 {
   "name": "ai-account-manager",
-  "version": "0.1.1",
-  "description": "多平台账号安全管理与浏览器自动化工具 (Google / GitHub / X / YouTube) —— Electron + React + TypeScript + Playwright",
+  "version": "0.2.0",
+  "description": "多平台账号安全管理与浏览器自动化工具（Google / GitHub / 苹果邮箱 / OAuth）—— Electron + React + TypeScript + Playwright",
   "author": "AI-AccountManager Contributors",
   "license": "MIT",
   "main": "./out/main/index.js",
@@ -40,7 +40,10 @@
     ],
     "asarUnpack": [
       "node_modules/playwright-core/**",
-      "node_modules/sql.js/**"
+      "node_modules/sql.js/**",
+      "node_modules/imapflow/**",
+      "node_modules/nodemailer/**",
+      "node_modules/mailparser/**"
     ],
     "publish": [
       {
@@ -144,8 +147,11 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "imapflow": "^1.7.1",
     "jsqr": "^1.4.0",
     "lucide-react": "^0.454.0",
+    "mailparser": "^3.9.15",
+    "nodemailer": "^6.10.1",
     "otpauth": "^9.3.6",
     "playwright-core": "^1.48.2",
     "qrcode": "^1.5.4",
@@ -167,7 +173,9 @@
     "@radix-ui/react-switch": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.6",
+    "@types/mailparser": "^3.4.6",
     "@types/node": "^22.10.5",
+    "@types/nodemailer": "^6.4.24",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

@@ -8,6 +8,8 @@ import { useTasksStore } from '@renderer/store/tasks'
 import { useLogsStore } from '@renderer/store/logs'
 import { useSecurityStore } from '@renderer/store/security'
 import { useLockStore } from '@renderer/store/lock'
+import { usePrivacyStore } from '@renderer/store/privacy'
+import { clearSecretsCache } from '@renderer/lib/secretsCache'
 import { applyTheme } from '@renderer/lib/theme'
 import Dashboard from '@renderer/pages/Dashboard'
 import Accounts from '@renderer/pages/Accounts'
@@ -78,11 +80,34 @@ export default function App(): React.JSX.Element {
   }, [themePref])
 
   useEffect(() => {
+    let blurAt = 0
+    const onBlur = (): void => {
+      blurAt = Date.now()
+    }
+    const onFocus = (): void => {
+      if (blurAt && Date.now() - blurAt > 5 * 60 * 1000) {
+        clearSecretsCache()
+        usePrivacyStore.getState().set(false)
+      }
+    }
+    window.addEventListener('blur', onBlur)
+    window.addEventListener('focus', onFocus)
+    return () => {
+      window.removeEventListener('blur', onBlur)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [])
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
         const s = useAppStore.getState()
         s.setCommandOpen(!s.commandOpen)
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'h' || e.key === 'H')) {
+        e.preventDefault()
+        usePrivacyStore.getState().toggle()
       }
     }
     window.addEventListener('keydown', onKey)

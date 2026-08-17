@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ChevronDown,
+  Columns3,
   Copy,
   Download,
   FileSpreadsheet,
@@ -36,6 +37,8 @@ import { useAppStore } from '@renderer/store/app'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { AccountStatusBadge } from '@renderer/components/status'
 import { TotpCell } from '@renderer/components/TotpCell'
+import { SecretCell } from '@renderer/components/SecretCell'
+import { getSecrets, invalidateSecrets } from '@renderer/lib/secretsCache'
 import { AccountDialog } from '@renderer/components/AccountDialog'
 import { RunAutomationDialog } from '@renderer/components/RunAutomationDialog'
 import { PasswordPromptDialog } from '@renderer/components/PasswordPromptDialog'
@@ -94,6 +97,29 @@ export default function Accounts(): React.JSX.Element {
   const setView = (v: 'list' | 'grid'): void => {
     setViewMode(v)
     localStorage.setItem('accountsView', v)
+  }
+  const COL_KEYS = ['password', 'totp', 'phone', 'recovery'] as const
+  const COL_LABELS: Record<(typeof COL_KEYS)[number], string> = {
+    password: '密码',
+    totp: '2FA',
+    phone: '手机号',
+    recovery: '恢复信息'
+  }
+  const [cols, setCols] = useState<Record<(typeof COL_KEYS)[number], boolean>>(() => {
+    try {
+      const raw = localStorage.getItem('aam.accounts.cols')
+      if (raw) return { password: true, totp: true, phone: true, recovery: true, ...JSON.parse(raw) }
+    } catch {
+      /* keep defaults */
+    }
+    return { password: true, totp: true, phone: true, recovery: true }
+  })
+  const toggleCol = (k: (typeof COL_KEYS)[number]): void => {
+    setCols((prev) => {
+      const next = { ...prev, [k]: !prev[k] }
+      localStorage.setItem('aam.accounts.cols', JSON.stringify(next))
+      return next
+    })
   }
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dialog, setDialog] = useState<{ open: boolean; account: Account | null }>({
@@ -423,6 +449,29 @@ export default function Accounts(): React.JSX.Element {
             <List className="h-4 w-4" />
           </button>
         </div>
+        {viewMode === 'list' && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" title="列显示">
+                <Columns3 className="h-4 w-4" /> 列
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {COL_KEYS.map((k) => (
+                <DropdownMenuItem
+                  key={k}
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    toggleCol(k)
+                  }}
+                >
+                  <Checkbox checked={cols[k]} className="mr-2" />
+                  {COL_LABELS[k]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <Select value={platform} onValueChange={(v) => setPlatform(v as Platform | 'all')}>
           <SelectTrigger className="w-40">
             <SelectValue />
@@ -628,13 +677,21 @@ export default function Accounts(): React.JSX.Element {
                 onRun={() => setRunDialog({ open: true, accounts: [a] })}
                 onLaunch={() => void launchBrowser(a)}
                 onCopyPassword={() => void copyPassword(a)}
+                onCopyTotp={() => void copyTotp(a)}
+                onCopyRecovery={() => {
+                  const t = a.recoveryEmail || a.recoveryPhone
+                  if (!t) return
+                  void navigator.clipboard.writeText(t)
+                  toast.success('恢复信息已复制')
+                }}
+                onEditProxy={() => setDialog({ open: true, account: a })}
                 onDelete={() => void onDelete(a)}
               />
             ))}
           </div>
         )
       ) : (
-      <div className="rounded-xl border bg-card">
+      <div className="overflow-x-auto rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -646,8 +703,10 @@ export default function Accounts(): React.JSX.Element {
               </TableHead>
               <TableHead>平台</TableHead>
               <TableHead>账号</TableHead>
-              <TableHead>2FA 验证码</TableHead>
-              <TableHead>恢复信息</TableHead>
+              {cols.password && <TableHead className="w-[140px]">密码</TableHead>}
+              {cols.totp && <TableHead>2FA 验证码</TableHead>}
+              {cols.phone && <TableHead className="w-[150px]">手机号</TableHead>}
+              {cols.recovery && <TableHead>恢复信息</TableHead>}
               <TableHead>状态</TableHead>
               <TableHead>最近使用</TableHead>
               <TableHead className="w-12" />
@@ -656,7 +715,7 @@ export default function Accounts(): React.JSX.Element {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="py-14 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={10} className="py-14 text-center text-sm text-muted-foreground">
                   没有匹配的账号。点击右上角「新增账号」开始。
                 </TableCell>
               </TableRow>
@@ -692,10 +751,55 @@ export default function Accounts(): React.JSX.Element {
                     </button>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <TotpCell accountId={a.id} hasTotp={a.hasTotp} />
-                </TableCell>
-                <TableCell>{recoveryTags(a)}</TableCell>
+                {cols.password && (
+                  <TableCell>
+                    <SecretCell
+                      value={null}
+                      load={async () => (await getSecrets(a.id)).password}
+                      copyLabel="密码已复制"
+                      onEdit={async (next) => {
+                        await api.accounts.update(a.id, { password: next })
+                        invalidateSecrets(a.id)
+                        await load()
+                      }}
+                    />
+                  </TableCell>
+                )}
+                {cols.totp && (
+                  <TableCell>
+                    <TotpCell
+                      accountId={a.id}
+                      hasTotp={a.hasTotp}
+                      onEditSecret={() => setDialog({ open: true, account: a })}
+                    />
+                  </TableCell>
+                )}
+                {cols.phone && (
+                  <TableCell>
+                    <SecretCell
+                      value={a.recoveryPhone || null}
+                      mask="partial"
+                      copyLabel="手机号已复制"
+                      onEdit={async (next) => {
+                        await api.accounts.update(a.id, { recoveryPhone: next })
+                        await load()
+                      }}
+                    />
+                  </TableCell>
+                )}
+                {cols.recovery && (
+                  <TableCell>
+                    <SecretCell
+                      value={a.recoveryEmail || null}
+                      mask="partial"
+                      copyLabel="恢复邮箱已复制"
+                      onEdit={async (next) => {
+                        await api.accounts.update(a.id, { recoveryEmail: next })
+                        await load()
+                      }}
+                    />
+                  </TableCell>
+                )}
                 <TableCell>
                   <AccountStatusBadge status={a.status} />
                 </TableCell>

@@ -5,8 +5,16 @@ import { githubFlows } from './github'
 import { xFlows } from './x'
 import { youtubeFlows } from './youtube'
 import { registerFlows } from './register'
+import { oauthRegisterFlows, oauthRegisterablePlatforms } from './oauthRegister'
 
-const ALL: Flow[] = [...googleFlows, ...githubFlows, ...xFlows, ...youtubeFlows, ...registerFlows]
+const ALL: Flow[] = [
+  ...googleFlows,
+  ...githubFlows,
+  ...xFlows,
+  ...youtubeFlows,
+  ...registerFlows,
+  ...oauthRegisterFlows
+]
 
 const byKey = new Map<string, Flow>()
 for (const f of ALL) byKey.set(`${f.platform}:${f.action}`, f)
@@ -28,9 +36,13 @@ export function getFlow(platform: Platform, action: TaskType): Flow | undefined 
 export function actionsFor(platform: Platform): AutomationActionDescriptor[] {
   // `register` is driven from the dedicated "批量注册" entry, not the per-account
   // action picker (registration creates accounts rather than acting on one).
-  return ALL.filter((f) => f.platform === platform && f.action !== 'register').map(toDescriptor)
+  return ALL.filter((f) => f.platform === platform && !String(f.action).startsWith('register')).map(
+    toDescriptor
+  )
 }
 
 export function registerablePlatforms(): Platform[] {
   return Array.from(new Set(ALL.filter((f) => f.action === 'register').map((f) => f.platform)))
 }
+
+export { oauthRegisterablePlatforms }

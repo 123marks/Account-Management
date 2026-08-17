@@ -103,6 +103,11 @@ export function ProviderConfigDialog({
         <DialogHeader>
           <DialogTitle>{editing ? '编辑服务' : `添加服务 · ${def.label}`}</DialogTitle>
           <DialogDescription>{def.description}</DialogDescription>
+          {def.unimplemented && (
+            <p className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
+              该驱动尚未接入运行时，保存后不会生效。
+            </p>
+          )}
         </DialogHeader>
 
         <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">

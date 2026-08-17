@@ -1,83 +1,68 @@
-import { randomBytes } from 'node:crypto'
 import { listProviders } from '../services/providers'
+import { tempmailDriver } from './mailbox/tempmail'
+import { testmailDriver } from './mailbox/testmail'
+import { imapDriver } from './mailbox/imap'
+import { genericHttpDriver } from './mailbox/genericHttp'
+import { cfworkerDriver } from './mailbox/cfworker'
+import { icloudImapDriver } from './mailbox/icloudImap'
+import { icloudHmeDriver } from './mailbox/icloudHme'
+import { icloudMailDriver } from './mailbox/icloudMail'
+import type { Inbox, MailboxDriver, MailMessage } from './mailbox/types'
 
-export interface Inbox {
-  driver: string
-  email: string
-  token: string
-}
+export type { Inbox }
 
 export interface MailboxRef {
   driver: string
   config: Record<string, string | number | boolean>
 }
 
-/** The default (or first enabled) mailbox provider, if configured. */
+const DRIVERS: Record<string, MailboxDriver> = {
+  tempmail_lol: tempmailDriver,
+  testmail: testmailDriver,
+  imap: imapDriver,
+  generic_http: genericHttpDriver,
+  cfworker: cfworkerDriver,
+  icloud_imap: icloudImapDriver,
+  icloud_hme: icloudHmeDriver,
+  icloud_mail: icloudMailDriver
+}
+
 export function resolveDefaultMailbox(): MailboxRef | null {
   const items = listProviders('mailbox')
   const chosen = items.find((p) => p.isDefault && p.enabled) ?? items.find((p) => p.enabled)
   return chosen ? { driver: chosen.driver, config: chosen.config } : null
 }
 
-function tempmailBase(config: Record<string, string | number | boolean>): string {
-  return String(config.apiBase || 'https://api.tempmail.lol/v2').replace(/\/+$/, '')
+function driverOf(name: string): MailboxDriver {
+  const d = DRIVERS[name]
+  if (!d) throw new Error(`邮箱驱动「${name}」暂不支持收信`)
+  return d
 }
 
-/** Provision a fresh inbox from the default mailbox provider. */
 export async function createInbox(): Promise<Inbox> {
   const m = resolveDefaultMailbox()
   if (!m) throw new Error('未配置可用的默认邮箱服务，请到「服务中心」添加并设为默认')
-
-  if (m.driver === 'tempmail_lol') {
-    const res = await fetch(`${tempmailBase(m.config)}/inbox/create`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: '{}'
-    })
-    if (!res.ok) throw new Error(`创建临时邮箱失败：HTTP ${res.status}`)
-    const data = (await res.json()) as { address?: string; email?: string; token?: string }
-    const email = data.address || data.email || ''
-    const token = data.token || ''
-    if (!email || !token) throw new Error('邮箱接口未返回地址或令牌')
-    return { driver: m.driver, email, token }
-  }
-
-  if (m.driver === 'testmail') {
-    const namespace = String(m.config.namespace || '').trim()
-    const apiKey = String(m.config.apiKey || '').trim()
-    if (!namespace || !apiKey) throw new Error('testmail 需要配置 API Key 与 namespace')
-    const prefix = String(m.config.tagPrefix || '')
-      .trim()
-      .replace(/^\.+|\.+$/g, '')
-    const suffix = randomBytes(6).toString('hex')
-    const tag = prefix ? `${prefix}.${suffix}` : suffix
-    const email = `${namespace}.${tag}@inbox.testmail.app`
-    return { driver: 'testmail', email, token: tag }
-  }
-
-  throw new Error(`邮箱驱动「${m.driver}」的注册运行时尚未接入（当前支持 TempMail.lol / testmail）`)
+  return driverOf(m.driver).createInbox({ config: m.config })
 }
 
 interface WaitOpts {
   timeoutMs?: number
   keyword?: string
   pattern?: RegExp
+  toAddress?: string
 }
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
-function extractFromMails(
-  mails: Array<Record<string, unknown>>,
-  seen: Set<string>,
-  opts: WaitOpts,
-  mode: 'code' | 'link'
-): string | null {
-  const pattern = opts.pattern ?? /(?<!\d)(\d{6})(?!\d)/
+const DEFAULT_CODE = /(?<!\d)(\d{4,8})(?!\d)/
+
+function extract(mails: MailMessage[], seen: Set<string>, opts: WaitOpts, mode: 'code' | 'link'): string | null {
+  const pattern = opts.pattern ?? DEFAULT_CODE
   for (const mail of mails) {
-    const id = String(mail.id ?? mail.message_id ?? `${mail.date ?? mail.timestamp ?? ''}:${mail.subject ?? ''}`)
-    if (seen.has(id)) continue
-    seen.add(id)
-    const text = `${mail.subject ?? ''} ${mail.body ?? ''} ${mail.text ?? ''} ${mail.html ?? ''}`
+    if (seen.has(mail.id)) continue
+    seen.add(mail.id)
+    if (opts.toAddress && mail.to && !mail.to.toLowerCase().includes(opts.toAddress.toLowerCase())) continue
+    const text = `${mail.subject} ${mail.text} ${mail.html}`
     if (opts.keyword && !text.toLowerCase().includes(opts.keyword.toLowerCase())) continue
     if (mode === 'code') {
       const m = pattern.exec(text)
@@ -90,42 +75,21 @@ function extractFromMails(
   return null
 }
 
-async function pollMails(driver: string, token: string): Promise<Array<Record<string, unknown>>> {
-  const m = resolveDefaultMailbox()
-  if (driver === 'tempmail_lol') {
-    const base = tempmailBase(m?.config ?? {})
-    const res = await fetch(`${base}/inbox?token=${encodeURIComponent(token)}`)
-    if (!res.ok) return []
-    const data = (await res.json()) as { emails?: Array<Record<string, unknown>> }
-    return data.emails ?? []
-  }
-  if (driver === 'testmail') {
-    const apiKey = String(m?.config.apiKey || '').trim()
-    const namespace = String(m?.config.namespace || '').trim()
-    if (!apiKey || !namespace) throw new Error('testmail 配置缺失（API Key / namespace）')
-    const url = `https://api.testmail.app/api/json?apikey=${encodeURIComponent(apiKey)}&namespace=${encodeURIComponent(namespace)}&tag=${encodeURIComponent(token)}&limit=20`
-    const res = await fetch(url)
-    if (!res.ok) return []
-    const data = (await res.json()) as { result?: string; message?: string; emails?: Array<Record<string, unknown>> }
-    if (data.result === 'fail') throw new Error(`testmail 查询失败：${data.message ?? '未知错误'}`)
-    return data.emails ?? []
-  }
-  throw new Error(`邮箱驱动「${driver}」暂不支持收信`)
-}
-
 async function poll(driver: string, token: string, opts: WaitOpts, mode: 'code' | 'link'): Promise<string> {
+  const m = resolveDefaultMailbox()
+  const cfg = m?.config ?? {}
+  const inbox: Inbox = { driver, email: opts.toAddress || '', token }
   const timeout = opts.timeoutMs ?? 120000
   const seen = new Set<string>()
   const start = Date.now()
   while (Date.now() - start < timeout) {
-    let mails: Array<Record<string, unknown>> = []
+    let mails: MailMessage[] = []
     try {
-      mails = await pollMails(driver, token)
+      mails = await driverOf(driver).fetchMails({ config: cfg }, inbox)
     } catch (e) {
-      // A hard config error should surface immediately, not silently time out.
-      if (/配置|apikey|namespace/i.test((e as Error).message)) throw e
+      if (/配置|apikey|namespace|认证/i.test((e as Error).message)) throw e
     }
-    const found = extractFromMails(mails, seen, opts, mode)
+    const found = extract(mails, seen, opts, mode)
     if (found) return found
     await sleep(3000)
   }
@@ -136,12 +100,19 @@ async function poll(driver: string, token: string, opts: WaitOpts, mode: 'code' 
   )
 }
 
-/** Poll the inbox and return the first verification code (default: a 6-digit code). */
 export function waitForCode(driver: string, token: string, opts: WaitOpts = {}): Promise<string> {
   return poll(driver, token, opts, 'code')
 }
 
-/** Poll the inbox and return the first verification link. */
 export function waitForLink(driver: string, token: string, opts: WaitOpts = {}): Promise<string> {
   return poll(driver, token, opts, 'link')
+}
+
+export async function testMailboxDriver(
+  driver: string,
+  config: Record<string, string | number | boolean>
+): Promise<{ ok: boolean; message: string }> {
+  const d = DRIVERS[driver]
+  if (!d) return { ok: false, message: '未知邮箱驱动' }
+  return d.test({ config })
 }

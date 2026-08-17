@@ -11,6 +11,7 @@ import { registerSystemIpc } from './system.ipc'
 import { registerSecurityIpc } from './security.ipc'
 import { registerProvidersIpc } from './providers.ipc'
 import { registerLockIpc } from './lock.ipc'
+import { registerSmsIpc } from './sms.ipc'
 
 export function registerIpc(getWindow: () => BrowserWindow | null): void {
   registerAccountsIpc()
@@ -22,6 +23,7 @@ export function registerIpc(getWindow: () => BrowserWindow | null): void {
   registerSecurityIpc()
   registerProvidersIpc()
   registerLockIpc()
+  registerSmsIpc()
 
   setLogEmitter((entry) => {
     getWindow()?.webContents.send(IPC.logs.new, entry)

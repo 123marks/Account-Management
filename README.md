@@ -8,14 +8,15 @@
 
 ## ✨ 功能特性
 
-- **多账号集中管理**：Google / GitHub / X / YouTube / 自定义平台，支持分组、标签、搜索、批量选择。
+- **多账号集中管理**：Google / GitHub / X / YouTube / OpenAI / Cursor 等，支持分组、标签、搜索、批量选择。
 - **凭据加密存储**：密码、2FA 密钥、备用码、Refresh Token 使用 **AES-256-GCM** 加密，主密钥由操作系统钥匙串（`safeStorage`）封存。
-- **实时 2FA (TOTP) 管理器**：账号列表内联显示实时刷新的验证码与倒计时环，一键复制；支持手输密钥 / `otpauth://` URI / **二维码图片**导入。
-- **浏览器自动化**：Playwright 驱动本地已安装的 Google Chrome，每个账号使用独立持久化配置（隔离登录态、可多开），执行登录检测、修改密码、修改恢复邮箱等流程。
-- **并发任务队列**：可配置并发数，批量对多个账号并行执行同类操作，实时进度、可取消、失败自动截图。
-- **全链路日志**：结构化日志落库 + 文件 + 实时推送到界面，可按级别 / 分类 / 账号 / 任务过滤。
+- **全局脱敏**：顶栏小眼睛 / `Ctrl+Shift+H` 统一隐藏密码、2FA、手机号；列表内可复制、可编辑。
+- **实时 2FA (TOTP)**：账号列表内联验证码与倒计时环；支持手输密钥 / `otpauth://` / 二维码导入。
+- **接码与邮箱**：SMS-Activate 兼容协议 / SMSBower / SMSPool；IMAP/SMTP、iCloud IMAP、Hide My Email（icloud-hme）、商业 iCloud Mail API。
+- **浏览器自动化**：Playwright 驱动本机 Chrome，独立持久化配置。Google 一条龙（改密 / 改手机 / 启用与轮换 2FA / 备用码）；GitHub 邮箱注册（Create account + Arkose + launch code）。
+- **OAuth 注册**：用已登录的 Google / GitHub 账号在 OpenAI / Cursor / Windsurf / Discord 完成授权注册。
+- **并发任务队列**：可配置并发，实时进度、可取消、失败自动截图。
 - **导入 / 导出**：账号数据一键备份与迁移。
-- **现代化界面**：Tailwind CSS + shadcn/ui 深色主题，信息密度与美观兼顾。
 
 ## ⬇️ 下载安装
 

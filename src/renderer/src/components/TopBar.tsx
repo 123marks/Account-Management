@@ -1,8 +1,10 @@
 import React from 'react'
-import { Chrome, Cpu, Lock, LockKeyhole, Search, ShieldAlert } from 'lucide-react'
+import { Chrome, Cpu, Eye, EyeOff, Lock, LockKeyhole, Search, ShieldAlert } from 'lucide-react'
 import { useAppStore, type Page } from '@renderer/store/app'
 import { useLockStore } from '@renderer/store/lock'
+import { usePrivacyStore } from '@renderer/store/privacy'
 import { Badge } from '@renderer/components/ui/badge'
+import { Button } from '@renderer/components/ui/button'
 
 const TITLES: Record<Page, { title: string; subtitle: string }> = {
   dashboard: { title: '仪表盘', subtitle: '账号与任务总览' },
@@ -20,6 +22,8 @@ export function TopBar(): React.JSX.Element {
   const setCommandOpen = useAppStore((s) => s.setCommandOpen)
   const lockEnabled = useLockStore((s) => s.enabled)
   const lockNow = useLockStore((s) => s.lockNow)
+  const revealed = usePrivacyStore((s) => s.revealed)
+  const togglePrivacy = usePrivacyStore((s) => s.toggle)
   const t = TITLES[page]
 
   return (
@@ -29,6 +33,16 @@ export function TopBar(): React.JSX.Element {
         <p className="text-xs text-muted-foreground">{t.subtitle}</p>
       </div>
       <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          title={revealed ? '隐藏敏感信息 (Ctrl+Shift+H)' : '显示敏感信息 (Ctrl+Shift+H)'}
+          aria-label={revealed ? '隐藏敏感信息' : '显示敏感信息'}
+          aria-pressed={revealed}
+          onClick={togglePrivacy}
+        >
+          {revealed ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+        </Button>
         <button
           onClick={() => setCommandOpen(true)}
           className="flex items-center gap-2 rounded-lg border bg-card/60 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

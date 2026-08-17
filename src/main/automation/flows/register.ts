@@ -1,4 +1,5 @@
 import type { Flow, FlowResult, StepContext } from '../types'
+import { githubRegister } from './githubRegister'
 import type { Platform } from '@shared/types'
 import { firstVisible } from './util'
 import { waitForCode } from '../mailbox'
@@ -145,7 +146,11 @@ export function makeRegisterFlow(spec: RegisterSpec): Flow {
 
       let code = ''
       await ctx.step('等待邮箱验证码', async () => {
-        code = await waitForCode(driver, token, { timeoutMs: 150000, keyword: spec.emailKeyword })
+        code = await waitForCode(driver, token, {
+          timeoutMs: 150000,
+          keyword: spec.emailKeyword,
+          toAddress: account.email
+        })
         // Don't log the code value itself (it lands in the log DB / export).
         ctx.log('info', `已收到邮箱验证码（${code.length} 位）`)
       })
@@ -210,5 +215,6 @@ const WINDSURF_REGISTER: RegisterSpec = {
 
 export const registerFlows: Flow[] = [
   makeRegisterFlow(CURSOR_REGISTER),
-  makeRegisterFlow(WINDSURF_REGISTER)
+  makeRegisterFlow(WINDSURF_REGISTER),
+  githubRegister
 ]

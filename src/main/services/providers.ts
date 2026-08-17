@@ -5,6 +5,8 @@ import type { ProviderSetting, ProviderSettingInput, ProviderTestResult } from '
 import { getDriver, type ProviderType } from '@shared/providers'
 import { parseProxy, socksAuthUnsupported, SOCKS_AUTH_MESSAGE } from '../automation/proxy'
 import { detectChrome } from '../automation/chrome'
+import { testMailboxDriver } from '../automation/mailbox'
+import { testSmsDriver } from '../automation/sms'
 
 interface Row {
   id: string
@@ -177,41 +179,14 @@ export async function testProvider(id: string): Promise<ProviderTestResult> {
   const p = getProvider(id)
   if (!p) return { ok: false, message: '未找到服务' }
   try {
-    if (p.type === 'mailbox') return await testMailbox(p)
+    if (p.type === 'mailbox') return await testMailboxDriver(p.driver, p.config)
     if (p.type === 'captcha') return await testCaptcha(p)
     if (p.type === 'proxy') return await testProxy(p)
+    if (p.type === 'sms') return await testSmsDriver(p.driver, p.config)
     return { ok: false, message: '该类型暂不支持一键测试' }
   } catch (e) {
     return { ok: false, message: `测试失败：${(e as Error).message}` }
   }
-}
-
-async function testMailbox(p: ProviderSetting): Promise<ProviderTestResult> {
-  if (p.driver === 'tempmail_lol') {
-    const base = String(p.config.apiBase || 'https://api.tempmail.lol/v2').replace(/\/+$/, '')
-    const res = await fetch(`${base}/inbox/create`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: '{}'
-    })
-    if (!res.ok) return { ok: false, message: `创建临时邮箱失败：HTTP ${res.status}` }
-    const data = (await res.json()) as { address?: string; email?: string }
-    const email = data.address || data.email || ''
-    if (!email) return { ok: false, message: '接口未返回邮箱地址' }
-    return { ok: true, message: `已生成临时邮箱：${email}`, detail: email }
-  }
-  if (p.driver === 'testmail') {
-    const apiKey = String(p.config.apiKey || '').trim()
-    const namespace = String(p.config.namespace || '').trim()
-    if (!apiKey || !namespace) return { ok: false, message: '需配置 API Key 与 namespace' }
-    const res = await fetch(
-      `https://api.testmail.app/api/json?apikey=${encodeURIComponent(apiKey)}&namespace=${encodeURIComponent(namespace)}&limit=1`
-    )
-    const data = (await res.json()) as { result?: string; message?: string }
-    if (data.result === 'fail') return { ok: false, message: `testmail 校验失败：${data.message ?? '未知错误'}` }
-    return { ok: true, message: `testmail 连接正常（namespace: ${namespace}）` }
-  }
-  return { ok: false, message: '该邮箱驱动的一键测试将在注册运行时接入' }
 }
 
 async function testCaptcha(p: ProviderSetting): Promise<ProviderTestResult> {

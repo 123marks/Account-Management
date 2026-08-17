@@ -136,6 +136,14 @@ async function runTask(taskId: string): Promise<void> {
     busyAccounts.add(accountId)
     const bundle = getAccountForAutomation(task.accountId)
     if (!bundle) throw new Error('账号不存在')
+    const sourceAccountId = String(task.params.sourceAccountId || '')
+    const sourceBundle =
+      sourceAccountId && sourceAccountId !== accountId ? getAccountForAutomation(sourceAccountId) : null
+    if (sourceAccountId && sourceAccountId !== accountId) {
+      if (!sourceBundle) throw new Error('授权源账号不存在')
+      if (busyAccounts.has(sourceAccountId)) throw new Error('授权源账号正在被其他任务占用')
+      busyAccounts.add(sourceAccountId)
+    }
     // Snapshot the account state before the flow mutates anything, so the UI
     // can show a clear before/after comparison for each task.
     before = {
@@ -153,12 +161,14 @@ async function runTask(taskId: string): Promise<void> {
 
     // Take the shared profile lock so a manually-opened browser or cookie op on
     // the same account can't collide with this run.
-    if (!reserveProfile(bundle.account.profileDir)) {
+    const profileAccount = sourceBundle?.account ?? bundle.account
+    const authSecrets = sourceBundle?.secrets ?? bundle.secrets
+    if (!reserveProfile(profileAccount.profileDir)) {
       throw new Error('该账号的浏览器已手动打开或配置目录被占用，请关闭后再运行自动化')
     }
-    reservedDir = bundle.account.profileDir
+    reservedDir = profileAccount.profileDir
 
-    const resolved = resolveProxy(bundle.account.proxyUrl)
+    const resolved = resolveProxy(profileAccount.proxyUrl || bundle.account.proxyUrl)
     if (resolved.raw) {
       if (socksAuthUnsupported(resolved.raw)) throw new Error(SOCKS_AUTH_MESSAGE)
       logger.info('automation', `使用代理(${resolved.source}): ${maskProxy(resolved.raw)}`, {
@@ -166,10 +176,10 @@ async function runTask(taskId: string): Promise<void> {
         taskId
       })
     }
-    const opened = await openContext(bundle.account.profileDir, resolved.proxy, {
-      userAgent: bundle.account.userAgent,
-      locale: bundle.account.locale,
-      timezone: bundle.account.timezone
+    const opened = await openContext(profileAccount.profileDir, resolved.proxy, {
+      userAgent: profileAccount.userAgent || bundle.account.userAgent,
+      locale: profileAccount.locale || bundle.account.locale,
+      timezone: profileAccount.timezone || bundle.account.timezone
     })
     handle.close = opened.close
     const page = opened.context.pages()[0] ?? (await opened.context.newPage())
@@ -185,13 +195,13 @@ async function runTask(taskId: string): Promise<void> {
       page,
       context: opened.context,
       account: bundle.account,
-      secrets: bundle.secrets,
+      secrets: authSecrets,
       params: task.params,
       signal: controller.signal,
       taskId,
       headless: getSettings().headless,
       totp: () =>
-        bundle.secrets.totpSecret ? currentCode(bundle.secrets.totpSecret)?.code ?? null : null,
+        authSecrets.totpSecret ? currentCode(authSecrets.totpSecret)?.code ?? null : null,
       log,
       throwIfCanceled,
       setProgress: (percent: number) => {
@@ -235,6 +245,8 @@ async function runTask(taskId: string): Promise<void> {
     const {
       accountPatch: _patch,
       newPassword: _pw,
+      totpSecret: _totp,
+      backupCodes: _codes,
       ...after
     } = (result.data ?? {}) as Record<string, unknown>
     emitUpdate(taskId, {
@@ -272,6 +284,8 @@ async function runTask(taskId: string): Promise<void> {
     clearTaskSecrets(taskId)
     if (reservedDir) releaseProfile(reservedDir)
     if (accountId) busyAccounts.delete(accountId)
+    const src = String(getTask(taskId)?.params.sourceAccountId || '')
+    if (src) busyAccounts.delete(src)
     running--
     pump()
   }

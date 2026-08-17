@@ -1,97 +1,13 @@
-import type { Flow, FlowResult, StepContext } from '../types'
+import type { Flow, FlowResult } from '../types'
 import { firstVisible, genPassword } from './util'
 import { guardHumanChallenge } from './challenge'
+import { ensureGoogleLogin } from './google/login'
+import { changePhone } from './google/changePhone'
+import { enable2fa } from './google/enable2fa'
+import { rotate2fa } from './google/rotate2fa'
+import { fetchBackupCodes } from './google/backupCodes'
 
-const NEXT = /next|下一步|继续|continue/i
-
-async function isSignedIn(ctx: StepContext): Promise<boolean> {
-  const url = ctx.page.url()
-  return url.includes('myaccount.google.com') && !url.includes('signin') && !url.includes('/signin/')
-}
-
-/**
- * Ensure the target Google account is logged in within this persistent profile.
- * NOTE: Google actively fights automation. Using the account's own persistent
- * profile (real cookies) is the most reliable path; a cold login may still hit
- * captcha / device-verification and require manual assistance. Selectors below
- * are best-effort and may need maintenance as Google's UI changes.
- */
-export async function ensureGoogleLogin(ctx: StepContext): Promise<void> {
-  const { page, account, secrets } = ctx
-
-  await ctx.step('打开 Google 账户主页', async () => {
-    await page.goto('https://myaccount.google.com/', {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    })
-    await page.waitForTimeout(1500)
-  })
-
-  if (await isSignedIn(ctx)) {
-    ctx.log('info', '检测到已是登录态，跳过登录')
-    return
-  }
-
-  await ctx.step('输入账号邮箱', async () => {
-    await page
-      .goto('https://accounts.google.com/', { waitUntil: 'domcontentloaded', timeout: 60000 })
-      .catch(() => undefined)
-    const email = await firstVisible(page, ['input[type="email"]', 'input#identifierId'], 20000)
-    if (!email) throw new Error('未找到邮箱输入框')
-    await email.fill(account.email || account.username)
-    await clickNext(ctx)
-    await page.waitForTimeout(1500)
-  })
-
-  await ctx.step('输入密码', async () => {
-    if (!secrets.password) throw new Error('账号未配置密码，无法登录')
-    const pwd = await firstVisible(page, ['input[type="password"]'], 20000)
-    if (!pwd) throw new Error('未找到密码输入框')
-    await pwd.fill(secrets.password)
-    await clickNext(ctx)
-    await page.waitForTimeout(2500)
-  })
-
-  await ctx.step('检查人机验证', async () => {
-    await guardHumanChallenge(ctx)
-  })
-
-  const totpInput = await firstVisible(
-    page,
-    ['input[name="totpPin"]', 'input#totpPin', 'input[type="tel"]'],
-    4000
-  )
-  if (totpInput) {
-    await ctx.step('输入两步验证码 (TOTP)', async () => {
-      const code = ctx.totp()
-      if (!code) throw new Error('目标要求 2FA，但账号未配置 TOTP 密钥')
-      await totpInput.fill(code)
-      await clickNext(ctx)
-      await page.waitForTimeout(2500)
-    })
-  }
-
-  await ctx.step('确认登录结果', async () => {
-    await page.goto('https://myaccount.google.com/', {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000
-    })
-    await page.waitForTimeout(1500)
-    if (!(await isSignedIn(ctx))) {
-      throw new Error('登录未成功（可能触发验证码/设备验证/风控，请在弹出的浏览器中手动完成一次登录后重试）')
-    }
-  })
-}
-
-async function clickNext(ctx: StepContext): Promise<void> {
-  const { page } = ctx
-  const btn = page.getByRole('button', { name: NEXT }).first()
-  if (await btn.isVisible().catch(() => false)) {
-    await btn.click().catch(() => undefined)
-    return
-  }
-  await page.keyboard.press('Enter').catch(() => undefined)
-}
+export { ensureGoogleLogin }
 
 const checkLogin: Flow = {
   platform: 'google',
@@ -185,8 +101,8 @@ const changePassword: Flow = {
 const changeRecovery: Flow = {
   platform: 'google',
   action: 'change_recovery',
-  title: 'Google 修改恢复信息',
-  description: '修改恢复邮箱（recovery email）；可选写回账号库。恢复手机因流程复杂暂为尽力而为。',
+  title: 'Google 修改恢复邮箱',
+  description: '修改恢复邮箱；如需改手机号请使用「Google 绑定/更换手机号」。',
   params: [
     { key: 'recoveryEmail', label: '新的恢复邮箱', type: 'text', required: true, placeholder: 'name@example.com' },
     { key: 'saveBack', label: '成功后写回账号库', type: 'boolean', defaultValue: true }
@@ -242,8 +158,8 @@ const changeRecovery: Flow = {
 const manage2fa: Flow = {
   platform: 'google',
   action: 'manage_2fa',
-  title: 'Google 两步验证状态',
-  description: '打开两步验证 (2SV) 页面并读取当前开启状态。启用/轮换 2FA 因流程复杂暂不自动执行。',
+  title: 'Google 两步验证状态（只读）',
+  description: '读取两步验证开关状态。启用/轮换请使用独立动作。',
   params: [],
   async run(ctx): Promise<FlowResult> {
     await ensureGoogleLogin(ctx)
@@ -263,4 +179,13 @@ const manage2fa: Flow = {
   }
 }
 
-export const googleFlows: Flow[] = [checkLogin, changePassword, changeRecovery, manage2fa]
+export const googleFlows: Flow[] = [
+  checkLogin,
+  changePassword,
+  changeRecovery,
+  manage2fa,
+  changePhone,
+  enable2fa,
+  rotate2fa,
+  fetchBackupCodes
+]

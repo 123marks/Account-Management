@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { api } from '@renderer/lib/api'
+import { clearSecretsCache } from '@renderer/lib/secretsCache'
+import { usePrivacyStore } from '@renderer/store/privacy'
 
 interface LockState {
   enabled: boolean
@@ -24,6 +26,8 @@ export const useLockStore = create<LockState>((set, get) => ({
   },
   lockNow: () => {
     if (!get().enabled) return
+    clearSecretsCache()
+    usePrivacyStore.getState().set(false)
     set({ locked: true })
     void api.lock.lockNow()
   },

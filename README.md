@@ -83,6 +83,9 @@ npm run dist:linux # 打 Linux AppImage / deb / tar.gz
 - 架构设计与实现规范：[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - 开发者 / 交接文档：[`docs/HANDOFF.md`](docs/HANDOFF.md)
 - 安全模型与责任使用：[`docs/SECURITY.md`](docs/SECURITY.md)
+- 打包与发布指南：[`docs/RELEASE.md`](docs/RELEASE.md)
+- 品牌与图标提示词：[`docs/BRAND.md`](docs/BRAND.md)
+- **开发任务规格（待实现功能）**：[`docs/dev/README.md`](docs/dev/README.md)
 
 ```
 src/

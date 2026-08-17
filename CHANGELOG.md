@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- 服务中心「添加」菜单可滚动，小窗口也能选完全部驱动
+- 取件链接邮箱：粘贴 iCloud 商业号 `邮箱----URL` / `邮箱---token---URL`，注册时扣库存并收码
+- Outlook Graph / OAuth2 双令牌号：`邮箱----密码----clientId----refreshToken`，Graph 读信失败则走 IMAP
+- 批量注册同时支持验证码和验证链接，免费临时邮箱 / IMAP / 自建域名 / 取件号 / Outlook 都能闭环
+- GitHub README 增加交流群与产品截图
+
 ## 0.2.0
 
 账号管理从「能看」做到「能跑」：接码、真实邮箱、Google 维护、OAuth 注册、苹果邮箱 + GitHub 注册全部接入运行时。

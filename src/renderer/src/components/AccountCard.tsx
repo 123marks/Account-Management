@@ -1,7 +1,8 @@
 import React from 'react'
 import { Globe, Inbox, KeyRound, Pencil, Play, Star, Trash2 } from 'lucide-react'
 import type { Account } from '@shared/types'
-import { accountSubtitle, accountTitle } from '@shared/accountDisplay'
+import { accountSubtitle, accountTitle, emailDomain } from '@shared/accountDisplay'
+import { platformMeta } from '@renderer/lib/platforms'
 import { relativeTime } from '@renderer/lib/utils'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { AccountStatusBadge } from '@renderer/components/status'
@@ -101,6 +102,14 @@ export function AccountCard({
             )}
             {running && (
               <Badge className="h-5 px-1.5 text-[10px]">执行中</Badge>
+            )}
+          </div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>{platformMeta(a.platform).label}</span>
+            {emailDomain(a.email) && (
+              <Badge variant="outline" className="h-5 px-1.5 font-mono text-[10px]">
+                {emailDomain(a.email)}
+              </Badge>
             )}
           </div>
           <div className="truncate text-xs text-muted-foreground">{subtitle}</div>

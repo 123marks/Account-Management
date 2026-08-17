@@ -88,6 +88,7 @@ export default function Accounts(): React.JSX.Element {
   const restore = useAccountsStore((s) => s.restore)
   const update = useAccountsStore((s) => s.update)
   const openDetail = useAppStore((s) => s.openDetail)
+  const registerPrefillInboxIds = useAppStore((s) => s.registerPrefillInboxIds)
   const tasks = useTasksStore((s) => s.tasks)
   const activeAccountIds = useMemo(() => {
     const ids = new Set<string>()
@@ -144,6 +145,10 @@ export default function Accounts(): React.JSX.Element {
   const [exportPwOpen, setExportPwOpen] = useState(false)
   const [importPw, setImportPw] = useState<{ open: boolean; text: string }>({ open: false, text: '' })
   const [registerOpen, setRegisterOpen] = useState(false)
+
+  useEffect(() => {
+    if (registerPrefillInboxIds.length > 0) setRegisterOpen(true)
+  }, [registerPrefillInboxIds])
   const [csvOpen, setCsvOpen] = useState(false)
   const [bulkEditOpen, setBulkEditOpen] = useState(false)
   const [trashOpen, setTrashOpen] = useState(false)

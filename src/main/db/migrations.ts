@@ -207,6 +207,13 @@ const MIGRATIONS: Migration[] = [
       CREATE INDEX idx_mailbox_inboxes_created ON mailbox_inboxes(created_at DESC);
       CREATE INDEX idx_mailbox_inboxes_email ON mailbox_inboxes(email);
     `
+  },
+  {
+    version: 14,
+    sql: `
+      ALTER TABLE mailbox_inboxes ADD COLUMN notes TEXT;
+      ALTER TABLE mailbox_inboxes ADD COLUMN tags TEXT;
+    `
   }
 ]
 

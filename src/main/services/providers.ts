@@ -5,8 +5,13 @@ import type { ProviderSetting, ProviderSettingInput, ProviderTestResult } from '
 import { getDriver, type ProviderType } from '@shared/providers'
 import { parseProxy, socksAuthUnsupported, SOCKS_AUTH_MESSAGE } from '../automation/proxy'
 import { detectChrome } from '../automation/chrome'
-import { peekDriverInbox, peekGeneratedInbox, peekImapInbox, peekOutlookGraphInbox, peekRecentMails, testMailboxDriver } from '../automation/mailbox'
-import { listGeneratedInboxes, removeGeneratedInbox } from '../db/repositories/inboxes'
+import { generateInboxes, peekDriverInbox, peekGeneratedInbox, peekImapInbox, peekOutlookGraphInbox, peekRecentMails, testMailboxDriver } from '../automation/mailbox'
+import {
+  listGeneratedInboxes,
+  removeGeneratedInbox,
+  removeGeneratedInboxes,
+  updateGeneratedInboxes
+} from '../db/repositories/inboxes'
 import {
   MAILBOX_SERVICE_DRIVERS,
   mailboxImapHost,
@@ -383,4 +388,16 @@ export function peekInboxRecord(id: string): Promise<import('@shared/types').Mai
 
 export function removeInbox(id: string): void {
   removeGeneratedInbox(id)
+}
+
+export function removeInboxes(ids: string[]): void {
+  removeGeneratedInboxes(ids)
+}
+
+export function stockInboxes(count: number): Promise<import('@shared/types').GeneratedInbox[]> {
+  return generateInboxes(count)
+}
+
+export function updateInboxes(ids: string[], patch: { notes?: string; tags?: string[] }): void {
+  updateGeneratedInboxes(ids, patch)
 }

@@ -2,6 +2,7 @@ export interface Inbox {
   driver: string
   email: string
   token: string
+  recordId?: string
 }
 
 export interface MailMessage {

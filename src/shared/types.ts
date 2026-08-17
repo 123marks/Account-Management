@@ -333,6 +333,9 @@ export interface Api {
     listInboxes(): Promise<GeneratedInbox[]>
     peekGeneratedInbox(id: string): Promise<MailPreview[]>
     removeInbox(id: string): Promise<void>
+    removeInboxes(ids: string[]): Promise<void>
+    generateInboxes(count: number): Promise<GeneratedInbox[]>
+    updateInboxes(ids: string[], patch: { notes?: string; tags?: string[] }): Promise<void>
   }
   totp: {
     get(id: string): Promise<TotpResult | null>
@@ -349,6 +352,11 @@ export interface Api {
     retry(taskId: string): Promise<AutomationTask | null>
     registerPlatforms(): Promise<Platform[]>
     registerBatch(platform: Platform, count: number): Promise<{ created: AutomationTask[]; errors: string[] }>
+    prepareRegister(input: RegisterPrepareInput): Promise<RegisterDraft[]>
+    confirmRegister(
+      platform: Platform,
+      drafts: RegisterDraft[]
+    ): Promise<{ created: AutomationTask[]; errors: string[] }>
     oauthPlatforms(): Promise<Platform[]>
     registerOauth(
       platform: Platform,
@@ -417,6 +425,25 @@ export interface GeneratedInbox {
   accountId: string
   createdAt: number
   hasToken: boolean
+  notes: string
+  tags: string[]
+}
+
+export interface RegisterDraft {
+  inboxId: string
+  mailboxAccountId: string
+  email: string
+  driver: string
+  password: string
+  username: string
+  label: string
+}
+
+export interface RegisterPrepareInput {
+  platform: Platform
+  count?: number
+  inboxIds?: string[]
+  mailboxAccountIds?: string[]
 }
 
 export type UpdateStatus =

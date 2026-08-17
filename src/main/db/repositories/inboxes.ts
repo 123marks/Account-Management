@@ -12,6 +12,18 @@ interface Row {
   source: string
   account_id: string | null
   created_at: number
+  notes?: string | null
+  tags?: string | null
+}
+
+function parseTags(s: string | null | undefined): string[] {
+  if (!s) return []
+  try {
+    const v = JSON.parse(s)
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []
+  } catch {
+    return []
+  }
 }
 
 function mapRow(r: Row): GeneratedInbox {
@@ -23,7 +35,9 @@ function mapRow(r: Row): GeneratedInbox {
     source: r.source as GeneratedInbox['source'],
     accountId: r.account_id ?? '',
     createdAt: r.created_at,
-    hasToken: !!r.token_enc
+    hasToken: !!r.token_enc,
+    notes: r.notes ?? '',
+    tags: parseTags(r.tags)
   }
 }
 
@@ -39,8 +53,8 @@ export function recordGeneratedInbox(input: {
   getDb()
     .prepare(
       `INSERT INTO mailbox_inboxes (
-        id, provider_id, driver, email, token_enc, source, account_id, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        id, provider_id, driver, email, token_enc, source, account_id, created_at, notes, tags
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       id,
@@ -50,7 +64,9 @@ export function recordGeneratedInbox(input: {
       encryptField(input.token || null),
       input.source,
       input.accountId || null,
-      Date.now()
+      Date.now(),
+      '',
+      '[]'
     )
   return getGeneratedInbox(id)!
 }
@@ -77,7 +93,7 @@ export function revealInboxToken(id: string): string {
 export function linkInboxToAccount(email: string, accountId: string): void {
   getDb()
     .prepare(
-      `UPDATE mailbox_inboxes SET account_id = ?
+      `UPDATE mailbox_inboxes SET account_id = ?, source = 'register'
        WHERE id = (
          SELECT id FROM mailbox_inboxes
          WHERE email = ? AND (account_id IS NULL OR account_id = '')
@@ -89,4 +105,35 @@ export function linkInboxToAccount(email: string, accountId: string): void {
 
 export function removeGeneratedInbox(id: string): void {
   getDb().prepare('DELETE FROM mailbox_inboxes WHERE id = ?').run(id)
+}
+
+export function removeGeneratedInboxes(ids: string[]): void {
+  const tx = getDb().transaction(() => {
+    for (const id of ids) removeGeneratedInbox(id)
+  })
+  tx()
+}
+
+export function linkInboxById(id: string, accountId: string): void {
+  getDb()
+    .prepare(`UPDATE mailbox_inboxes SET account_id = ?, source = 'register' WHERE id = ?`)
+    .run(accountId, id)
+}
+
+export function updateGeneratedInboxes(
+  ids: string[],
+  patch: { notes?: string; tags?: string[] }
+): void {
+  const tx = getDb().transaction(() => {
+    for (const id of ids) {
+      const cur = getGeneratedInbox(id)
+      if (!cur) continue
+      const notes = patch.notes !== undefined ? patch.notes : cur.notes
+      const tags = patch.tags !== undefined ? patch.tags : cur.tags
+      getDb()
+        .prepare('UPDATE mailbox_inboxes SET notes = ?, tags = ? WHERE id = ?')
+        .run(notes, JSON.stringify(tags), id)
+    }
+  })
+  tx()
 }

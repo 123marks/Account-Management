@@ -10,6 +10,7 @@ import {
 } from '@shared/providers'
 import { api } from '@renderer/lib/api'
 import { useProvidersStore } from '@renderer/store/providers'
+import { useAppStore } from '@renderer/store/app'
 import { ProviderConfigDialog } from '@renderer/components/ProviderConfigDialog'
 import { SmsRentalsPanel } from '@renderer/components/SmsRentalsPanel'
 import { InboxHistoryPanel } from '@renderer/components/InboxHistoryPanel'
@@ -45,6 +46,7 @@ export default function Providers(): React.JSX.Element {
   const items = useProvidersStore((s) => s.items)
   const providersLoading = useProvidersStore((s) => s.loading)
   const load = useProvidersStore((s) => s.load)
+  const openRegisterWithInboxes = useAppStore((s) => s.openRegisterWithInboxes)
   const remove = useProvidersStore((s) => s.remove)
   const setDefault = useProvidersStore((s) => s.setDefault)
   const saveProvider = useProvidersStore((s) => s.save)
@@ -247,7 +249,11 @@ export default function Providers(): React.JSX.Element {
       </Card>
 
       {tab === 'mailbox' && (
-        <InboxHistoryPanel refreshToken={inboxTick} onPeek={(id) => setInboxPeekId(id)} />
+        <InboxHistoryPanel
+          refreshToken={inboxTick}
+          onPeek={(id) => setInboxPeekId(id)}
+          onRegister={(ids) => openRegisterWithInboxes(ids)}
+        />
       )}
       {tab === 'sms' && <SmsRentalsPanel />}
 

@@ -35,7 +35,10 @@ export const IPC = {
     useAccountAsMailbox: 'providers:use-account-as-mailbox',
     listInboxes: 'providers:list-inboxes',
     peekGeneratedInbox: 'providers:peek-generated-inbox',
-    removeInbox: 'providers:remove-inbox'
+    removeInbox: 'providers:remove-inbox',
+    removeInboxes: 'providers:remove-inboxes',
+    generateInboxes: 'providers:generate-inboxes',
+    updateInboxes: 'providers:update-inboxes'
   },
   totp: {
     get: 'totp:get',
@@ -51,6 +54,8 @@ export const IPC = {
     clear: 'automation:clear',
     retry: 'automation:retry',
     registerBatch: 'automation:registerBatch',
+    prepareRegister: 'automation:prepare-register',
+    confirmRegister: 'automation:confirm-register',
     registerPlatforms: 'automation:registerPlatforms',
     oauthPlatforms: 'automation:oauth-platforms',
     registerOauth: 'automation:register-oauth',

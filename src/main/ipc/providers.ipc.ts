@@ -14,7 +14,10 @@ import {
   useAccountAsMailbox,
   listInboxes,
   peekInboxRecord,
-  removeInbox
+  removeInbox,
+  removeInboxes,
+  stockInboxes,
+  updateInboxes
 } from '../services/providers'
 
 export function registerProvidersIpc(): void {
@@ -33,4 +36,9 @@ export function registerProvidersIpc(): void {
   ipcMain.handle(IPC.providers.listInboxes, () => listInboxes())
   ipcMain.handle(IPC.providers.peekGeneratedInbox, (_e, id: string) => peekInboxRecord(id))
   ipcMain.handle(IPC.providers.removeInbox, (_e, id: string) => removeInbox(id))
+  ipcMain.handle(IPC.providers.removeInboxes, (_e, ids: string[]) => removeInboxes(ids))
+  ipcMain.handle(IPC.providers.generateInboxes, (_e, count: number) => stockInboxes(count))
+  ipcMain.handle(IPC.providers.updateInboxes, (_e, ids: string[], patch: { notes?: string; tags?: string[] }) =>
+    updateInboxes(ids, patch)
+  )
 }

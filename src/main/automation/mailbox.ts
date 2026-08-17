@@ -63,15 +63,29 @@ export async function createInbox(): Promise<Inbox> {
     }
   })
   if (inbox.email.includes('@')) {
-    recordGeneratedInbox({
+    const rec = recordGeneratedInbox({
       providerId: chosen.id,
       driver: inbox.driver,
       email: inbox.email,
       token: inbox.token,
-      source: 'register'
+      source: 'test'
     })
+    return { ...inbox, recordId: rec.id }
   }
   return inbox
+}
+
+export async function generateInboxes(count: number): Promise<import('@shared/types').GeneratedInbox[]> {
+  const n = Math.max(1, Math.min(50, Math.floor(count || 1)))
+  const out: import('@shared/types').GeneratedInbox[] = []
+  for (let i = 0; i < n; i++) {
+    const inbox = await createInbox()
+    if (inbox.recordId) {
+      const row = getGeneratedInbox(inbox.recordId)
+      if (row) out.push(row)
+    }
+  }
+  return out
 }
 
 interface WaitOpts {

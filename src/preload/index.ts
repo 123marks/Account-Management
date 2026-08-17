@@ -39,7 +39,10 @@ const api: Api = {
     useAccountAsMailbox: (accountId) => ipcRenderer.invoke(IPC.providers.useAccountAsMailbox, accountId),
     listInboxes: () => ipcRenderer.invoke(IPC.providers.listInboxes),
     peekGeneratedInbox: (id) => ipcRenderer.invoke(IPC.providers.peekGeneratedInbox, id),
-    removeInbox: (id) => ipcRenderer.invoke(IPC.providers.removeInbox, id)
+    removeInbox: (id) => ipcRenderer.invoke(IPC.providers.removeInbox, id),
+    removeInboxes: (ids) => ipcRenderer.invoke(IPC.providers.removeInboxes, ids),
+    generateInboxes: (count) => ipcRenderer.invoke(IPC.providers.generateInboxes, count),
+    updateInboxes: (ids, patch) => ipcRenderer.invoke(IPC.providers.updateInboxes, ids, patch)
   },
   totp: {
     get: (id) => ipcRenderer.invoke(IPC.totp.get, id),
@@ -56,6 +59,9 @@ const api: Api = {
     retry: (taskId) => ipcRenderer.invoke(IPC.automation.retry, taskId),
     registerPlatforms: () => ipcRenderer.invoke(IPC.automation.registerPlatforms),
     registerBatch: (platform, count) => ipcRenderer.invoke(IPC.automation.registerBatch, platform, count),
+    prepareRegister: (input) => ipcRenderer.invoke(IPC.automation.prepareRegister, input),
+    confirmRegister: (platform, drafts) =>
+      ipcRenderer.invoke(IPC.automation.confirmRegister, platform, drafts),
     oauthPlatforms: () => ipcRenderer.invoke(IPC.automation.oauthPlatforms),
     registerOauth: (platform, sourceAccountIds, oauthProvider) =>
       ipcRenderer.invoke(IPC.automation.registerOauth, platform, sourceAccountIds, oauthProvider),

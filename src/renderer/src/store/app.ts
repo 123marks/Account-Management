@@ -26,6 +26,9 @@ interface AppState {
   init: () => Promise<void>
   saveSettings: (patch: Partial<AppSettings>) => Promise<void>
   refreshChrome: () => Promise<void>
+  registerPrefillInboxIds: string[]
+  openRegisterWithInboxes: (ids: string[]) => void
+  clearRegisterPrefill: () => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -53,5 +56,8 @@ export const useAppStore = create<AppState>((set) => ({
   },
   refreshChrome: async () => {
     set({ chrome: await api.system.detectChrome() })
-  }
+  },
+  registerPrefillInboxIds: [],
+  openRegisterWithInboxes: (ids) => set({ page: 'accounts', registerPrefillInboxIds: ids }),
+  clearRegisterPrefill: () => set({ registerPrefillInboxIds: [] })
 }))

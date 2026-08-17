@@ -1,9 +1,14 @@
 import { ipcMain } from 'electron'
 import { IPC } from '@shared/ipc'
-import type { EnqueueRequest, Platform } from '@shared/types'
+import type { EnqueueRequest, Platform, RegisterDraft, RegisterPrepareInput } from '@shared/types'
 import { actionsFor, oauthRegisterablePlatforms, registerablePlatforms } from '../automation/flows/registry'
 import { cancel, enqueue, retry, isAccountBusy } from '../automation/engine'
-import { enqueueOauthRegistrations, enqueueRegistrations } from '../automation/registration'
+import {
+  confirmRegistrations,
+  enqueueOauthRegistrations,
+  enqueueRegistrations,
+  prepareRegistrations
+} from '../automation/registration'
 import {
   launchManualProfile,
   isProfileBusy,
@@ -27,6 +32,12 @@ export function registerAutomationIpc(): void {
   ipcMain.handle(IPC.automation.registerPlatforms, () => registerablePlatforms())
   ipcMain.handle(IPC.automation.registerBatch, (_e, platform: Platform, count: number) =>
     enqueueRegistrations(platform, count)
+  )
+  ipcMain.handle(IPC.automation.prepareRegister, (_e, input: RegisterPrepareInput) =>
+    prepareRegistrations(input)
+  )
+  ipcMain.handle(IPC.automation.confirmRegister, (_e, platform: Platform, drafts: RegisterDraft[]) =>
+    confirmRegistrations(platform, drafts)
   )
   ipcMain.handle(IPC.automation.oauthPlatforms, () => oauthRegisterablePlatforms())
   ipcMain.handle(

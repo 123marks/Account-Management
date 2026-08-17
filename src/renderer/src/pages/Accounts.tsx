@@ -47,6 +47,7 @@ import { ImportCsvDialog } from '@renderer/components/ImportCsvDialog'
 import { BulkEditDialog, type BulkEditSpec } from '@renderer/components/BulkEditDialog'
 import { AccountCard } from '@renderer/components/AccountCard'
 import { CloneAccountDialog } from '@renderer/components/CloneAccountDialog'
+import { MailPeekDialog } from '@renderer/components/MailPeekDialog'
 import { TrashDialog } from '@renderer/components/TrashDialog'
 import { EmptyState } from '@renderer/components/ui/empty-state'
 import { SkeletonRows } from '@renderer/components/ui/skeleton'
@@ -140,6 +141,7 @@ export default function Accounts(): React.JSX.Element {
     open: false,
     account: null
   })
+  const [mailPeek, setMailPeek] = useState<{ open: boolean; accountId?: string }>({ open: false })
   const [deletedCount, setDeletedCount] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -685,6 +687,7 @@ export default function Accounts(): React.JSX.Element {
                   toast.success('恢复信息已复制')
                 }}
                 onEditProxy={() => setDialog({ open: true, account: a })}
+                onPeekMail={() => setMailPeek({ open: true, accountId: a.id })}
                 onDelete={() => void onDelete(a)}
               />
             ))}
@@ -901,6 +904,11 @@ export default function Accounts(): React.JSX.Element {
         account={cloneTarget.account}
         onOpenChange={(v) => setCloneTarget((c) => ({ ...c, open: v }))}
         onDone={() => void load()}
+      />
+      <MailPeekDialog
+        open={mailPeek.open}
+        accountId={mailPeek.accountId}
+        onOpenChange={(v) => setMailPeek((s) => ({ ...s, open: v }))}
       />
     </div>
   )

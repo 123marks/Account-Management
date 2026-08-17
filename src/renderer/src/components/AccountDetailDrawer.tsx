@@ -6,6 +6,8 @@ import {
   EyeOff,
   FolderOpen,
   Globe,
+  Inbox,
+  Mail,
   History,
   Pencil,
   Play,
@@ -30,6 +32,7 @@ import { TotpQR } from '@renderer/components/TotpQR'
 import { AccountDialog } from '@renderer/components/AccountDialog'
 import { RunAutomationDialog } from '@renderer/components/RunAutomationDialog'
 import { CloneAccountDialog } from '@renderer/components/CloneAccountDialog'
+import { MailPeekDialog } from '@renderer/components/MailPeekDialog'
 import { Sheet, SheetContent, SheetTitle } from '@renderer/components/ui/sheet'
 import { Button } from '@renderer/components/ui/button'
 import { Badge } from '@renderer/components/ui/badge'
@@ -77,6 +80,7 @@ export function AccountDetailDrawer(): React.JSX.Element {
   const [editing, setEditing] = useState(false)
   const [running, setRunning] = useState(false)
   const [cloning, setCloning] = useState(false)
+  const [mailOpen, setMailOpen] = useState(false)
   const [history, setHistory] = useState<PasswordHistoryEntry[] | null>(null)
   const [showHistory, setShowHistory] = useState(false)
   const [proxyProbe, setProxyProbe] = useState<{ loading: boolean; ok: boolean; text: string } | null>(null)
@@ -547,6 +551,22 @@ export function AccountDetailDrawer(): React.JSX.Element {
               <Button size="sm" variant="outline" onClick={() => setRunning(true)}>
                 <Play className="h-4 w-4" /> 运行自动化
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setMailOpen(true)}>
+                <Inbox className="h-4 w-4" /> 读信
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                title="用该账号密码创建 IMAP 邮箱服务，供批量注册收验证码"
+                onClick={() => {
+                  void api.providers
+                    .useAccountAsMailbox(account.id)
+                    .then(() => toast.success('已加入服务中心，可作默认收信源'))
+                    .catch((e) => toast.error((e as Error).message))
+                }}
+              >
+                <Mail className="h-4 w-4" /> 用作收信
+              </Button>
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
                 <Pencil className="h-4 w-4" /> 编辑
               </Button>
@@ -591,6 +611,7 @@ export function AccountDetailDrawer(): React.JSX.Element {
             onOpenChange={setCloning}
             onDone={() => void reloadAccounts()}
           />
+          <MailPeekDialog open={mailOpen} accountId={account.id} onOpenChange={setMailOpen} />
         </>
       )}
     </>

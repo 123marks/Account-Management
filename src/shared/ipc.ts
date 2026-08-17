@@ -29,7 +29,10 @@ export const IPC = {
     save: 'providers:save',
     remove: 'providers:remove',
     setDefault: 'providers:setDefault',
-    test: 'providers:test'
+    test: 'providers:test',
+    peekMails: 'providers:peek-mails',
+    peekAccountInbox: 'providers:peek-account-inbox',
+    useAccountAsMailbox: 'providers:use-account-as-mailbox'
   },
   totp: {
     get: 'totp:get',

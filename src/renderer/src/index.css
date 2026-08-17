@@ -108,3 +108,19 @@
   background: hsl(var(--muted-foreground) / 0.5);
   background-clip: content-box;
 }
+
+.account-card-frame {
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(hsl(var(--card)), hsl(var(--card))),
+    linear-gradient(135deg, #7b6cff 0%, #f472b6 38%, #fb923c 68%, #67e8f9 100%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 0 0 0 transparent;
+  transition: box-shadow 0.2s ease, filter 0.2s ease;
+}
+.account-card-frame:hover,
+.account-card-frame-active {
+  filter: saturate(1.15);
+  box-shadow: 0 0 0 1px rgb(123 108 255 / 0.25), 0 8px 24px -12px rgb(123 108 255 / 0.45);
+}

@@ -113,7 +113,8 @@ export function BatchRegisterDialog({
               <div className="flex-1">
                 <p className="text-foreground">尚未配置可用的邮箱服务</p>
                 <p className="text-xs text-muted-foreground">
-                  注册会申请邮箱并收验证码/链接。请到「服务中心」添加临时邮箱、IMAP、取件链接或 Outlook 双令牌，并设为默认。
+                  邮箱注册会申请收件箱并读取邮件正文提取验证码/链接。也可用已有 Google / GitHub 账号走 OAuth
+                  授权回调。请先配置邮箱服务，或在账号详情点「用作收信」。
                 </p>
               </div>
               <Button

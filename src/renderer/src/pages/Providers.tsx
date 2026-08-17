@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Info, Mail, Plus, ShieldCheck, Smartphone, Trash2, Wifi, Wand2 } from 'lucide-react'
+import { CheckCircle2, Inbox, Info, Mail, Plus, ShieldCheck, Smartphone, Trash2, Wifi, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ProviderSetting } from '@shared/types'
 import {
@@ -12,6 +12,7 @@ import { api } from '@renderer/lib/api'
 import { useProvidersStore } from '@renderer/store/providers'
 import { ProviderConfigDialog } from '@renderer/components/ProviderConfigDialog'
 import { SmsRentalsPanel } from '@renderer/components/SmsRentalsPanel'
+import { MailPeekDialog } from '@renderer/components/MailPeekDialog'
 import { Card, CardContent } from '@renderer/components/ui/card'
 import { EmptyState } from '@renderer/components/ui/empty-state'
 import { SkeletonRows } from '@renderer/components/ui/skeleton'
@@ -54,6 +55,7 @@ export default function Providers(): React.JSX.Element {
     editing: null
   })
   const [testingId, setTestingId] = useState<string | null>(null)
+  const [peekId, setPeekId] = useState<string | null>(null)
 
   useEffect(() => {
     void load()
@@ -186,6 +188,16 @@ export default function Providers(): React.JSX.Element {
                       <div className="text-xs text-muted-foreground">{def?.label ?? p.driver}</div>
                     </div>
 
+                    {tab === 'mailbox' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPeekId(p.id)}
+                        title="读取最近邮件"
+                      >
+                        <Inbox className="h-4 w-4" /> 读信
+                      </Button>
+                    )}
                     {def?.testable && (
                       <Button
                         variant="ghost"
@@ -231,6 +243,13 @@ export default function Providers(): React.JSX.Element {
 
       {tab === 'sms' && <SmsRentalsPanel />}
 
+      <MailPeekDialog
+        open={!!peekId}
+        providerId={peekId ?? undefined}
+        onOpenChange={(v) => {
+          if (!v) setPeekId(null)
+        }}
+      />
       <ProviderConfigDialog
         open={dialog.open}
         onOpenChange={(v) => setDialog((d) => ({ ...d, open: v }))}

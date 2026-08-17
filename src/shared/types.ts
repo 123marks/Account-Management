@@ -255,6 +255,16 @@ export interface ProviderTestResult {
   detail?: string
 }
 
+/** Recent inbox preview sent to the renderer (body truncated, no credentials). */
+export interface MailPreview {
+  id: string
+  subject: string
+  from: string
+  to?: string
+  text: string
+  receivedAt: number
+}
+
 export type ConnectMode = 'launch' | 'cdp'
 
 export interface AppSettings {
@@ -309,6 +319,9 @@ export interface Api {
     remove(id: string): Promise<void>
     setDefault(id: string): Promise<void>
     test(id: string): Promise<ProviderTestResult>
+    peekMails(providerId?: string): Promise<MailPreview[]>
+    peekAccountInbox(accountId: string): Promise<MailPreview[]>
+    useAccountAsMailbox(accountId: string): Promise<ProviderSetting>
   }
   totp: {
     get(id: string): Promise<TotpResult | null>

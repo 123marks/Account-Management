@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import type { Account, AccountInput, AccountStatus, Platform } from '@shared/types'
 import { estimatePasswordStrength, strengthLabel } from '@shared/security'
 import { api } from '@renderer/lib/api'
+import { parseAccountPaste } from '@renderer/lib/accountPaste'
 import { randomIdentity } from '@renderer/lib/identity'
 import { genPassword } from '@renderer/lib/utils'
 import { decodeQrFromFile } from '@renderer/lib/qr'
@@ -116,12 +117,14 @@ export function AccountDialog({
   const [uri, setUri] = useState('')
   const [saving, setSaving] = useState(false)
   const [genOpen, setGenOpen] = useState(false)
+  const [paste, setPaste] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!open) return
     setShowPwd(false)
     setUri('')
+    setPaste('')
     if (account) {
       void (async () => {
         const s = await api.accounts.reveal(account.id)
@@ -171,6 +174,54 @@ export function AccountDialog({
   }, [form.totpSecret])
 
   const set = (patch: Partial<FormState>): void => setForm((f) => ({ ...f, ...patch }))
+
+  const applyParsed = (input: AccountInput): void => {
+    set({
+      platform: input.platform,
+      label: input.label,
+      username: input.username,
+      email: input.email,
+      password: input.password || '',
+      totpSecret: input.totpSecret || '',
+      recoveryEmail: input.recoveryEmail || '',
+      recoveryPhone: input.recoveryPhone || '',
+      refreshToken: input.refreshToken || '',
+      notes: input.notes || '',
+      locale: input.locale || '',
+      timezone: input.timezone || '',
+      customFields: Object.entries(input.customFields || {}).map(([key, value]) => ({ key, value })),
+      tagsText: (input.tags || []).join(', ')
+    })
+  }
+
+  const onPasteText = (text: string): void => {
+    setPaste(text)
+    const rows = parseAccountPaste(text)
+    if (rows.length === 1) applyParsed(rows[0])
+  }
+
+  const importPasted = async (): Promise<void> => {
+    const rows = parseAccountPaste(paste)
+    if (rows.length === 0) {
+      toast.error('没有解析出账号。支持 ---- / --- / | / 冒号 分隔')
+      return
+    }
+    if (rows.length === 1) {
+      applyParsed(rows[0])
+      toast.success('已填入表单，确认后点保存')
+      return
+    }
+    setSaving(true)
+    try {
+      for (const row of rows) await create(row)
+      toast.success(`已快捷导入 ${rows.length} 个账号`)
+      onOpenChange(false)
+    } catch (e) {
+      toast.error('导入失败: ' + (e as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const importUri = async (): Promise<void> => {
     const r = await api.totp.parseUri(uri.trim())
@@ -265,10 +316,36 @@ export function AccountDialog({
       >
         <DialogHeader>
           <DialogTitle>{account ? '编辑账号' : '新增账号'}</DialogTitle>
-          <DialogDescription>密码、2FA 密钥、备用码、Token 将以 AES-256-GCM 加密存储在本地。</DialogDescription>
+          <DialogDescription>
+            密码、2FA、Token 本地加密。也可直接粘贴
+            <span className="font-mono"> 邮箱----密码----恢复邮箱----2FA----年份----国家 </span>
+            或 <span className="font-mono">邮箱:密码</span> / <span className="font-mono">|</span> 分隔。
+          </DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[64vh] space-y-5 overflow-y-auto pr-1">
+          {!account && (
+            <div className="space-y-1.5">
+              <Label>快捷粘贴（一行一个，自动拆分）</Label>
+              <Textarea
+                value={paste}
+                onChange={(e) => onPasteText(e.target.value)}
+                placeholder={
+                  'name@gmail.com----password----recovery@hotmail.com----totpsecret----2024----United States'
+                }
+                className="font-mono text-xs"
+                rows={3}
+              />
+              <div className="flex justify-end">
+                <Button type="button" size="sm" variant="outline" onClick={() => void importPasted()} disabled={!paste.trim()}>
+                  {parseAccountPaste(paste).length > 1
+                    ? `导入 ${parseAccountPaste(paste).length} 个账号`
+                    : '填入表单'}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>平台</Label>
@@ -316,7 +393,18 @@ export function AccountDialog({
             </div>
             <div className="space-y-1.5">
               <Label>邮箱</Label>
-              <Input value={form.email} onChange={(e) => set({ email: e.target.value })} placeholder="name@example.com" />
+              <Input
+                value={form.email}
+                onChange={(e) => set({ email: e.target.value })}
+                onPaste={(e) => {
+                  const text = e.clipboardData.getData('text')
+                  if (text.includes('----') || text.includes('|') || /----|---/.test(text)) {
+                    e.preventDefault()
+                    onPasteText(text)
+                  }
+                }}
+                placeholder="name@example.com 或整行粘贴"
+              />
             </div>
           </div>
 

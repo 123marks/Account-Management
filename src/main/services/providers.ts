@@ -5,9 +5,11 @@ import type { ProviderSetting, ProviderSettingInput, ProviderTestResult } from '
 import { getDriver, type ProviderType } from '@shared/providers'
 import { parseProxy, socksAuthUnsupported, SOCKS_AUTH_MESSAGE } from '../automation/proxy'
 import { detectChrome } from '../automation/chrome'
-import { testMailboxDriver } from '../automation/mailbox'
+import { peekImapInbox, peekRecentMails, testMailboxDriver } from '../automation/mailbox'
 import { testSmsDriver } from '../automation/sms'
 import { countStockLines } from '../automation/mailbox/stock'
+import { getAccount, revealSecrets } from '../db/repositories/accounts'
+import type { MailPreview } from '@shared/types'
 
 interface Row {
   id: string
@@ -245,4 +247,57 @@ async function testProxy(p: ProviderSetting): Promise<ProviderTestResult> {
   } finally {
     await browser.close()
   }
+}
+
+function imapHint(email: string, platform: string): { host: string; driver: 'imap' | 'icloud_imap' } {
+  const domain = (email.split('@')[1] || '').toLowerCase()
+  if (platform === 'apple' || /icloud\.com|me\.com|mac\.com/.test(domain)) {
+    return { host: 'imap.mail.me.com', driver: 'icloud_imap' }
+  }
+  if (platform === 'microsoft' || /outlook\.|hotmail\.|live\.com/.test(domain)) {
+    return { host: 'outlook.office365.com', driver: 'imap' }
+  }
+  return { host: 'imap.gmail.com', driver: 'imap' }
+}
+
+export function peekProviderMails(providerId?: string): Promise<MailPreview[]> {
+  return peekRecentMails(providerId)
+}
+
+export async function peekAccountInbox(accountId: string): Promise<MailPreview[]> {
+  const acc = getAccount(accountId)
+  if (!acc) throw new Error('账号不存在')
+  const secrets = revealSecrets(accountId)
+  if (!acc.email.includes('@')) throw new Error('该账号没有邮箱地址')
+  if (!secrets.password) throw new Error('该账号没有保存密码，无法 IMAP 读信')
+  const { host } = imapHint(acc.email, acc.platform)
+  return peekImapInbox(acc.email, secrets.password, host)
+}
+
+export function useAccountAsMailbox(accountId: string): ProviderSetting {
+  const acc = getAccount(accountId)
+  if (!acc) throw new Error('账号不存在')
+  const secrets = revealSecrets(accountId)
+  if (!acc.email.includes('@')) throw new Error('该账号没有邮箱地址')
+  if (!secrets.password) throw new Error('该账号没有保存密码')
+  const { host, driver } = imapHint(acc.email, acc.platform)
+  return saveProvider({
+    type: 'mailbox',
+    driver,
+    name: `账号 · ${acc.email}`,
+    enabled: true,
+    isDefault: listProviders('mailbox').length === 0,
+    config:
+      driver === 'icloud_imap'
+        ? { user: acc.email, pass: secrets.password, plusAddressing: true }
+        : {
+            host,
+            port: 993,
+            secure: true,
+            user: acc.email,
+            pass: secrets.password,
+            plusAddressing: true,
+            mailbox: 'INBOX'
+          }
+  })
 }

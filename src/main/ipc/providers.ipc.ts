@@ -8,7 +8,10 @@ import {
   maskSetting,
   removeProvider,
   setDefaultProvider,
-  testProvider
+  testProvider,
+  peekProviderMails,
+  peekAccountInbox,
+  useAccountAsMailbox
 } from '../services/providers'
 
 export function registerProvidersIpc(): void {
@@ -19,4 +22,9 @@ export function registerProvidersIpc(): void {
   ipcMain.handle(IPC.providers.remove, (_e, id: string) => removeProvider(id))
   ipcMain.handle(IPC.providers.setDefault, (_e, id: string) => setDefaultProvider(id))
   ipcMain.handle(IPC.providers.test, (_e, id: string) => testProvider(id))
+  ipcMain.handle(IPC.providers.peekMails, (_e, providerId?: string) => peekProviderMails(providerId))
+  ipcMain.handle(IPC.providers.peekAccountInbox, (_e, accountId: string) => peekAccountInbox(accountId))
+  ipcMain.handle(IPC.providers.useAccountAsMailbox, (_e, accountId: string) =>
+    maskSetting(useAccountAsMailbox(accountId))
+  )
 }

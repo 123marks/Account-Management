@@ -178,3 +178,58 @@ export async function testMailboxDriver(
   if (!d) return { ok: false, message: '未知邮箱驱动' }
   return d.test({ config })
 }
+
+function toPreview(m: MailMessage): import('@shared/types').MailPreview {
+  const text = `${m.text || ''} ${stripHtml(m.html || '')}`.replace(/\s+/g, ' ').trim().slice(0, 800)
+  return {
+    id: m.id,
+    subject: m.subject,
+    from: m.from,
+    to: m.to,
+    text,
+    receivedAt: m.receivedAt
+  }
+}
+
+export async function peekRecentMails(providerId?: string): Promise<import('@shared/types').MailPreview[]> {
+  const items = listProviders('mailbox')
+  const chosen = providerId
+    ? items.find((p) => p.id === providerId)
+    : items.find((p) => p.isDefault && p.enabled) ?? items.find((p) => p.enabled)
+  if (!chosen) throw new Error('未配置可用的邮箱服务')
+  const inbox: Inbox = {
+    driver: chosen.driver,
+    email: String(chosen.config.user || chosen.config.email || chosen.config.baseAddress || ''),
+    token: ''
+  }
+  if (chosen.driver === 'mail_pickup') {
+    const { parsePickupLine, splitStockLines } = await import('./mailbox/stock')
+    const first = splitStockLines(String(chosen.config.stock || ''))[0]
+    const item = first ? parsePickupLine(first) : null
+    if (!item) throw new Error('取件库存为空，无法预览')
+    inbox.email = item.email
+    inbox.token = JSON.stringify({ email: item.email, url: item.url, key: item.key })
+  } else if (chosen.driver === 'outlook_graph') {
+    inbox.email = String(chosen.config.email || chosen.config.user || inbox.email)
+    inbox.token = JSON.stringify({
+      email: inbox.email,
+      password: String(chosen.config.password || chosen.config.pass || ''),
+      clientId: String(chosen.config.clientId || ''),
+      refreshToken: String(chosen.config.refreshToken || '')
+    })
+  }
+  const mails = await driverOf(chosen.driver).fetchMails({ config: chosen.config }, inbox)
+  return mails.slice(0, 20).map(toPreview)
+}
+
+export async function peekImapInbox(
+  user: string,
+  pass: string,
+  host: string
+): Promise<import('@shared/types').MailPreview[]> {
+  const mails = await imapDriver.fetchMails(
+    { config: { host, port: 993, secure: true, user, pass, mailbox: 'INBOX' } },
+    { driver: 'imap', email: user, token: '' }
+  )
+  return mails.slice(0, 20).map(toPreview)
+}

@@ -3,6 +3,8 @@ import { AlertTriangle, FileSpreadsheet, ShieldAlert, Upload } from 'lucide-reac
 import { toast } from 'sonner'
 import { api } from '@renderer/lib/api'
 import { parseCsv, mapCsv, type CsvMapResult, type ImportAccount } from '@renderer/lib/csv'
+import { parseAccountPaste } from '@renderer/lib/accountPaste'
+import { Textarea } from '@renderer/components/ui/textarea'
 import { platformMeta } from '@renderer/lib/platforms'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import {
@@ -105,7 +107,7 @@ export function ImportCsvDialog({
             <FileSpreadsheet className="h-5 w-5 text-primary" /> 从 CSV 导入账号
           </DialogTitle>
           <DialogDescription>
-            支持 Chrome / Edge、Bitwarden、1Password、KeePass、LastPass 等导出的 CSV，自动识别列并推断平台。
+            支持 CSV，或直接粘贴 <span className="font-mono">邮箱----密码----恢复邮箱----2FA</span> 等多行文本。
           </DialogDescription>
         </DialogHeader>
 
@@ -117,6 +119,39 @@ export function ImportCsvDialog({
               <Upload className="h-4 w-4" /> 选择 CSV 文件
             </Button>
             {fileName && <span className="truncate text-sm text-muted-foreground">{fileName}</span>}
+          </div>
+          <div className="space-y-1.5">
+            <Label>或粘贴账号行</Label>
+            <Textarea
+              rows={4}
+              className="font-mono text-xs"
+              placeholder={'name@gmail.com----password----recovery@hotmail.com----totp----2024----United States'}
+              onChange={(e) => {
+                const rows = parseAccountPaste(e.target.value)
+                if (rows.length === 0) {
+                  setResult(null)
+                  return
+                }
+                setFileName('粘贴文本')
+                setError('')
+                setResult({
+                  total: rows.length,
+                  skipped: 0,
+                  accounts: rows.map((a) => ({
+                    platform: a.platform,
+                    label: a.label,
+                    username: a.username,
+                    email: a.email,
+                    password: a.password || '',
+                    totpSecret: a.totpSecret || '',
+                    recoveryEmail: a.recoveryEmail || '',
+                    notes: a.notes || '',
+                    groupName: a.groupName || '',
+                    tags: a.tags || []
+                  }))
+                })
+              }}
+            />
           </div>
 
           {error && (

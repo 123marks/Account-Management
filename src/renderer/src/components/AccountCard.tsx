@@ -1,5 +1,5 @@
 import React from 'react'
-import { Globe, KeyRound, Pencil, Play, Star, Trash2 } from 'lucide-react'
+import { Globe, Inbox, KeyRound, Pencil, Play, Star, Trash2 } from 'lucide-react'
 import type { Account } from '@shared/types'
 import { relativeTime } from '@renderer/lib/utils'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
@@ -55,6 +55,7 @@ export interface AccountCardHandlers {
   onCopyTotp: () => void
   onCopyRecovery: () => void
   onEditProxy: () => void
+  onPeekMail: () => void
   onDelete: () => void
 }
 
@@ -71,6 +72,7 @@ export function AccountCard({
   onCopyTotp,
   onCopyRecovery,
   onEditProxy,
+  onPeekMail,
   onDelete
 }: { account: Account } & AccountCardHandlers): React.JSX.Element {
   const a = account
@@ -83,7 +85,7 @@ export function AccountCard({
   return (
     <div
       data-state={selected ? 'selected' : undefined}
-      className="group flex flex-col rounded-xl border bg-card p-4 transition-colors hover:border-primary/40 data-[state=selected]:border-primary/60 data-[state=selected]:ring-1 data-[state=selected]:ring-primary/30"
+      className="account-card-frame group flex flex-col rounded-xl bg-card p-4 data-[state=selected]:account-card-frame-active"
     >
       <div className="flex items-start gap-2.5">
         <Checkbox checked={selected} onCheckedChange={onToggleSelect} className="mt-1 shrink-0" />
@@ -153,6 +155,9 @@ export function AccountCard({
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" title="打开浏览器" onClick={onLaunch}>
             <Globe className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="读取最近邮件" onClick={onPeekMail}>
+            <Inbox className="h-3.5 w-3.5" />
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" title="编辑" onClick={onEdit}>
             <Pencil className="h-3.5 w-3.5" />

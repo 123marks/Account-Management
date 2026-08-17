@@ -1,13 +1,17 @@
-// Rasterize a source PNG into build/icon.png (1024px app icon).
+// Rasterize a source PNG into the app icon (build/icon.png, 1024px) and the
+// in-app brand mark used by the renderer (src/renderer/src/assets/logo.png, 256px).
+// Both must be regenerated together, otherwise the window icon and the sidebar
+// logo drift apart.
 // Usage: node scripts/process-logo.mjs [source.png]
 import { chromium } from 'playwright-core'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 
 const root = resolve(process.cwd())
-const srcArg = process.argv[2] ?? 'ChatGPT Image 2026年8月16日 21_26_58.png'
+const srcArg = process.argv[2] ?? 'build/logo-source.png'
 const srcPath = resolve(root, srcArg)
 const outPath = resolve(root, 'build/icon.png')
+const rendererPath = resolve(root, 'src/renderer/src/assets/logo.png')
 
 if (!existsSync(srcPath)) {
   console.error('Source not found:', srcPath)
@@ -75,6 +79,15 @@ try {
   const buf = await tile.screenshot({ omitBackground: true })
   writeFileSync(outPath, buf)
   console.log('wrote', outPath, buf.length, 'bytes')
+
+  await page.setViewportSize({ width: 256, height: 256 })
+  await page.addStyleTag({
+    content: 'html,body{width:256px;height:256px}.tile{width:256px;height:256px;border-radius:56px}'
+  })
+  const small = await (await page.$('.tile')).screenshot({ omitBackground: true })
+  mkdirSync(dirname(rendererPath), { recursive: true })
+  writeFileSync(rendererPath, small)
+  console.log('wrote', rendererPath, small.length, 'bytes')
 } finally {
   await browser.close()
 }

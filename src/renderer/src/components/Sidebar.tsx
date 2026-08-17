@@ -53,7 +53,7 @@ export function Sidebar(): React.JSX.Element {
       </nav>
 
       <div className="px-5 py-4 text-[11px] text-muted-foreground">
-        <div>v0.1.0 · MIT</div>
+        <div>v{__APP_VERSION__} · MIT</div>
         <div className="mt-0.5">本地数据 · 加密存储</div>
       </div>
     </aside>

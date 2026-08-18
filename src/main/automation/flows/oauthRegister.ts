@@ -180,6 +180,18 @@ const SPECS: OAuthRegisterSpec[] = [
       github: []
     },
     successUrlIncludes: 'discord.com/channels'
+  },
+  {
+    platform: 'kiro',
+    title: 'Kiro 注册（OAuth）',
+    description: '用已有 Google / GitHub 账号在官方页授权登录 Kiro。',
+    signupUrl: 'https://app.kiro.dev',
+    providers: ['google', 'github'],
+    oauthButtonSelectors: {
+      google: ['button:has-text("Google")'],
+      github: ['button:has-text("GitHub")']
+    },
+    successUrlIncludes: 'kiro.dev'
   }
 ]
 

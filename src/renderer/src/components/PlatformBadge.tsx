@@ -12,12 +12,17 @@ export function PlatformGlyph({
   size?: number
 }): React.JSX.Element {
   const brand = BRAND[platform]
-  const inner = Math.round(size * 0.68)
   if (brand) {
+    const bare = brand.tile === 'transparent'
+    const inner = bare ? size : Math.round(size * 0.86)
     return (
       <div
         className="flex shrink-0 items-center justify-center overflow-hidden rounded-md"
-        style={{ width: size, height: size, backgroundColor: brand.tile }}
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: bare ? 'transparent' : brand.tile
+        }}
       >
         <svg viewBox="0 0 24 24" width={inner} height={inner} className="block">
           {brand.node}
@@ -52,7 +57,7 @@ export function PlatformBadge({
   const m = platformMeta(platform)
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <PlatformGlyph platform={platform} size={22} />
+      <PlatformGlyph platform={platform} size={18} />
       <span className="font-medium">{m.label}</span>
     </div>
   )

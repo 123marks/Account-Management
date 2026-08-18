@@ -55,6 +55,7 @@ const PLATFORM_ORDER: Platform[] = [
   'anthropic',
   'cursor',
   'windsurf',
+  'kiro',
   'custom'
 ]
 

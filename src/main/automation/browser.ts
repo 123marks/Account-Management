@@ -167,6 +167,11 @@ export async function readProfileCookies(profileDir: string): Promise<unknown[]>
   return withPersistentContext(profileDir, (context) => context.cookies())
 }
 
+/** Cookies + localStorage (official login often leaves tokens in origin storage). */
+export async function readProfileStorageState(profileDir: string): Promise<unknown> {
+  return withPersistentContext(profileDir, (context) => context.storageState())
+}
+
 /** Write cookies into an account's isolated profile (warm-up / session transfer). */
 export async function writeProfileCookies(profileDir: string, cookies: unknown[]): Promise<number> {
   return withPersistentContext(profileDir, async (context) => {

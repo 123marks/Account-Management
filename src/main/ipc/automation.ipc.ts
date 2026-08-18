@@ -46,7 +46,7 @@ export function registerAutomationIpc(): void {
     (_e, platform: Platform, sourceAccountIds: string[], oauthProvider: 'google' | 'github') =>
       enqueueOauthRegistrations(platform, sourceAccountIds, oauthProvider)
   )
-  ipcMain.handle(IPC.automation.launchProfile, async (_e, accountId: string) => {
+  ipcMain.handle(IPC.automation.launchProfile, async (_e, accountId: string, url?: string) => {
     const acc = getAccount(accountId)
     if (!acc) return { ok: false, message: '账号不存在' }
     if (isAccountBusy(accountId)) {
@@ -60,18 +60,27 @@ export function registerAutomationIpc(): void {
       return { ok: false, message: SOCKS_AUTH_MESSAGE }
     }
     try {
-      const { opened } = await launchManualProfile(acc.profileDir, resolved.proxy, {
-        userAgent: acc.userAgent,
-        locale: acc.locale,
-        timezone: acc.timezone
-      })
+      const { opened } = await launchManualProfile(
+        acc.profileDir,
+        resolved.proxy,
+        {
+          userAgent: acc.userAgent,
+          locale: acc.locale,
+          timezone: acc.timezone
+        },
+        url
+      )
       if (opened) {
         touchLastUsed(accountId)
-        logger.info('automation', `打开独立浏览器: ${acc.label}`, { accountId })
+        logger.info('automation', `打开独立浏览器: ${acc.label}${url ? ` ${url}` : ''}`, { accountId })
       }
       return {
         ok: opened,
-        message: opened ? '已打开该账号的独立浏览器（关闭窗口即结束）' : '该账号的浏览器已经打开'
+        message: opened
+          ? url
+            ? '已打开官方登录页。登录完成后关掉窗口，再点「刷新额度」会抓会话并查用量'
+            : '已打开该账号的独立浏览器（关闭窗口即结束）'
+          : '该账号的浏览器已经打开'
       }
     } catch (e) {
       return { ok: false, message: '打开失败：' + (e as Error).message }

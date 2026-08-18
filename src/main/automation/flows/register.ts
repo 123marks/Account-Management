@@ -267,6 +267,18 @@ const X_REGISTER: RegisterSpec = {
   successUrlIncludes: 'x.com'
 }
 
+const KIRO_REGISTER: RegisterSpec = {
+  platform: 'kiro',
+  title: 'Kiro 注册',
+  description: '打开 Kiro 官方登录页。社交登录用 Google / GitHub 授权；Builder ID 用邮箱。',
+  signupUrl: 'https://app.kiro.dev',
+  emailSelectors: ['input[type="email"]', 'input[name="email"]'],
+  submitSelectors: ['button[type="submit"]'],
+  codeSelectors: ['input[autocomplete="one-time-code"]', 'input[name="code"]'],
+  emailKeyword: 'kiro',
+  successUrlIncludes: 'kiro.dev'
+}
+
 const ANTHROPIC_REGISTER: RegisterSpec = {
   platform: 'anthropic',
   title: 'Anthropic / Claude 注册',
@@ -320,5 +332,6 @@ export const registerFlows: Flow[] = [
   makeRegisterFlow(OPENAI_REGISTER),
   makeRegisterFlow(ANTHROPIC_REGISTER),
   makeRegisterFlow(CURSOR_REGISTER),
-  makeRegisterFlow(WINDSURF_REGISTER)
+  makeRegisterFlow(WINDSURF_REGISTER),
+  makeRegisterFlow(KIRO_REGISTER)
 ]

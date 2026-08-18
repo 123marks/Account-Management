@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.8
+
+- OpenAI / Claude / Cursor / Windsurf 换成官方 Simple Icons 路径；Google 不再套白底大方块；新增 Kiro 平台
+- 账号卡片排版收紧；额度显示百分比
+- OpenAI / Claude / Cursor / Windsurf / Kiro：粘贴官方 Token 或 JSON，写入独立 Chrome；官方网页登录后刷新额度会抓会话
+- 额度接口按各平台公开实现对接（Cursor usage-summary、Claude organizations/usage、Kiro OIDC + getUsageLimits、Windsurf GetUserStatus）
+- 已生成邮箱默认可折叠；区分临时库存和账号库真实邮箱；批量注册默认用真实邮箱
+
 ## 0.2.7
 
 - 统一平台 Logo：卡片、下拉、安全中心同一套固定方块图标，OpenAI / Claude / Cursor / Windsurf 补上品牌标

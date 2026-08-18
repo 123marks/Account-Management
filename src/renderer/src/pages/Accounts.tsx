@@ -33,6 +33,7 @@ import { toCsv } from '@renderer/lib/csv'
 import { randomIdentity } from '@renderer/lib/identity'
 import { relativeTime } from '@renderer/lib/utils'
 import { PLATFORMS } from '@renderer/lib/platforms'
+import { officialLoginUrl } from '@shared/officialLogin'
 import { accountTitle } from '@shared/accountDisplay'
 import { useAccountsStore } from '@renderer/store/accounts'
 import { useAppStore } from '@renderer/store/app'
@@ -260,8 +261,8 @@ export default function Accounts(): React.JSX.Element {
     toast.warning(`已导出 ${selectedAccounts.length} 个账号（明文，请妥善保管）`)
   }
 
-  const launchBrowser = async (a: Account): Promise<void> => {
-    const r = await api.automation.launchProfile(a.id)
+  const launchBrowser = async (a: Account, url?: string): Promise<void> => {
+    const r = await api.automation.launchProfile(a.id, url)
     if (r.ok) toast.success(r.message)
     else toast.error(r.message)
   }
@@ -680,10 +681,10 @@ export default function Accounts(): React.JSX.Element {
             onClick={() => {
               void (async () => {
                 const ids = selectedAccounts
-                  .filter((a) => ['cursor', 'openai', 'anthropic', 'windsurf'].includes(a.platform))
+                  .filter((a) => ['cursor', 'openai', 'anthropic', 'windsurf', 'kiro'].includes(a.platform))
                   .map((a) => a.id)
                 if (ids.length === 0) {
-                  toast.error('选中的账号没有可查询额度的平台（Cursor / ChatGPT / Claude / Windsurf）')
+                    toast.error('选中的账号没有可查询额度的平台（Cursor / ChatGPT / Claude / Windsurf / Kiro）')
                   return
                 }
                 try {
@@ -758,6 +759,7 @@ export default function Accounts(): React.JSX.Element {
                 onEdit={() => setDialog({ open: true, account: a })}
                 onRun={() => setRunDialog({ open: true, accounts: [a] })}
                 onLaunch={() => void launchBrowser(a)}
+                onAuthLogin={() => void launchBrowser(a, officialLoginUrl(a.platform))}
                 onCopyPassword={() => void copyPassword(a)}
                 onCopyTotp={() => void copyTotp(a)}
                 onCopyRecovery={() => {

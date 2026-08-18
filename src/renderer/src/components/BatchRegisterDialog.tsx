@@ -60,7 +60,7 @@ export function BatchRegisterDialog({
   const [oauthPlatforms, setOauthPlatforms] = useState<Platform[]>([])
   const [platform, setPlatform] = useState<Platform | ''>('')
   const [count, setCount] = useState(1)
-  const [mailSource, setMailSource] = useState<'generate' | 'inboxes' | 'accounts'>('generate')
+  const [mailSource, setMailSource] = useState<'generate' | 'inboxes' | 'accounts'>('accounts')
   const [inboxes, setInboxes] = useState<GeneratedInbox[]>([])
   const [inboxIds, setInboxIds] = useState<string[]>([])
   const [mailboxAccountIds, setMailboxAccountIds] = useState<string[]>([])
@@ -284,9 +284,9 @@ export function BatchRegisterDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="generate">新生成临时邮箱</SelectItem>
-                      <SelectItem value="inboxes">选用已生成邮箱</SelectItem>
-                      <SelectItem value="accounts">用账号库里的收信邮箱</SelectItem>
+                      <SelectItem value="accounts">账号库真实邮箱（推荐）</SelectItem>
+                      <SelectItem value="inboxes">已生成的临时邮箱</SelectItem>
+                      <SelectItem value="generate">再生成一批临时邮箱</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

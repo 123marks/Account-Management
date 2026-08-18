@@ -1,6 +1,6 @@
 {
   "name": "ai-account-manager",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "多平台账号安全管理与浏览器自动化工具（Google / GitHub / 苹果邮箱 / OAuth）—— Electron + React + TypeScript + Playwright",
   "author": "AI-AccountManager Contributors",
   "license": "MIT",

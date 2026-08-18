@@ -15,10 +15,11 @@ export const PLATFORMS: PlatformMeta[] = [
   { key: 'x', label: 'X (Twitter)', color: '#000000', letter: 'X' },
   { key: 'youtube', label: 'YouTube', color: '#ff0000', letter: '▶' },
   { key: 'discord', label: 'Discord', color: '#5865f2', letter: 'D' },
-  { key: 'openai', label: 'OpenAI', color: '#10a37f', letter: 'AI' },
-  { key: 'anthropic', label: 'Anthropic', color: '#d97757', letter: 'A' },
-  { key: 'cursor', label: 'Cursor', color: '#111827', letter: 'C' },
-  { key: 'windsurf', label: 'Windsurf', color: '#0b9d88', letter: 'W' },
+  { key: 'openai', label: 'OpenAI', color: '#000000', letter: 'AI' },
+  { key: 'anthropic', label: 'Anthropic', color: '#191919', letter: 'A' },
+  { key: 'cursor', label: 'Cursor', color: '#141414', letter: 'C' },
+  { key: 'windsurf', label: 'Windsurf', color: '#0B100F', letter: 'W' },
+  { key: 'kiro', label: 'Kiro', color: '#FF5C33', letter: 'K' },
   { key: 'custom', label: '自定义', color: '#8b5cf6', letter: '★' }
 ]
 
@@ -27,5 +28,5 @@ export function platformMeta(p: Platform): PlatformMeta {
 }
 
 export function hasQuota(p: Platform): boolean {
-  return p === 'cursor' || p === 'openai' || p === 'anthropic' || p === 'windsurf'
+  return p === 'cursor' || p === 'openai' || p === 'anthropic' || p === 'windsurf' || p === 'kiro'
 }

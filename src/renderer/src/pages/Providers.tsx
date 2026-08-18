@@ -110,7 +110,8 @@ export default function Providers(): React.JSX.Element {
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <p className="text-muted-foreground">
           服务中心用于接入自动化与<span className="text-foreground">批量注册</span>所需的外部能力：邮箱收码、验证码求解、短信接码、代理。
-          密钥等敏感信息以 AES-256-GCM 加密后保存在本机。配置好并设为默认后，注册流程会自动调用对应默认服务。
+          上面「邮箱服务」是真实通道（iCloud / 自建 IMAP 等），点「测试」只测这条通道能不能收信。
+          下面「已生成邮箱」是临时库存，和账号管理里添加的 Gmail / Outlook 不是一回事。注册请优先选账号库真实邮箱。
         </p>
       </div>
 

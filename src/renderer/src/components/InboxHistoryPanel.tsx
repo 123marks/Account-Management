@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Copy, Inbox, RefreshCw, Rocket, Tags, Trash2, Wand2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Copy, Inbox, RefreshCw, Rocket, Tags, Trash2, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { GeneratedInbox } from '@shared/types'
 import { emailDomain } from '@shared/accountDisplay'
@@ -25,6 +25,7 @@ export function InboxHistoryPanel({
   const [q, setQ] = useState('')
   const [genCount, setGenCount] = useState(1)
   const [tagText, setTagText] = useState('')
+  const [open, setOpen] = useState(false)
 
   const load = async (): Promise<void> => {
     setLoading(true)
@@ -102,12 +103,18 @@ export function InboxHistoryPanel({
   return (
     <div className="rounded-xl border bg-card p-4">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-medium">已生成邮箱</div>
-          <p className="text-xs text-muted-foreground">
-            可批量删除、打标签、读信，空闲邮箱可直接拿去注册，和账号库闭环。
-          </p>
-        </div>
+        <button type="button" className="flex min-w-0 flex-1 items-start gap-2 text-left" onClick={() => setOpen((v) => !v)}>
+          {open ? <ChevronDown className="mt-0.5 h-4 w-4 shrink-0" /> : <ChevronRight className="mt-0.5 h-4 w-4 shrink-0" />}
+          <div className="min-w-0">
+            <div className="text-sm font-medium">
+              已生成邮箱
+              <span className="ml-2 text-xs font-normal text-muted-foreground">{items.length} 个</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              这里是<strong>临时邮箱库存</strong>（测试/批量注册用，容易失效）。你在账号管理里添加的 Gmail / iCloud / Outlook 才是真实收信箱。点左侧箭头展开。
+            </p>
+          </div>
+        </button>
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -130,7 +137,7 @@ export function InboxHistoryPanel({
         </Button>
       </div>
 
-      {selected.size > 0 && (
+      {open && selected.size > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border bg-secondary/40 px-3 py-2">
           <span className="text-xs">已选 {selected.size}</span>
           <Input
@@ -159,9 +166,9 @@ export function InboxHistoryPanel({
         </div>
       )}
 
-      {filtered.length === 0 ? (
-        <p className="text-xs text-muted-foreground">还没有记录。点「生成」或「测试」即可入库。</p>
-      ) : (
+      {open && filtered.length === 0 ? (
+        <p className="text-xs text-muted-foreground">还没有记录。点「生成」会向这里写入临时邮箱；服务商上的「测试」也是测通道，不是测你账号库里的真实邮箱。</p>
+      ) : open ? (
         <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
           <label className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
             <Checkbox
@@ -237,7 +244,7 @@ export function InboxHistoryPanel({
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

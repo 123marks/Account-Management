@@ -9,7 +9,8 @@ const HOME: Record<string, { url: string; signedIn: RegExp }> = {
   openai: { url: 'https://chatgpt.com/', signedIn: /chatgpt\.com\/(#|c\/|\?)/i },
   anthropic: { url: 'https://claude.ai/', signedIn: /claude\.ai\/(new|chat|project)/i },
   cursor: { url: 'https://cursor.com/settings', signedIn: /cursor\.com\/(settings|dashboard|agents)/i },
-  windsurf: { url: 'https://windsurf.com/', signedIn: /windsurf/i }
+  windsurf: { url: 'https://windsurf.com/', signedIn: /windsurf/i },
+  kiro: { url: 'https://app.kiro.dev', signedIn: /kiro\.dev|app\.kiro/i }
 }
 
 function makeCheck(platform: Platform): Flow {
@@ -64,5 +65,5 @@ function makeCheck(platform: Platform): Flow {
 }
 
 export const sessionCheckFlows: Flow[] = (
-  ['microsoft', 'apple', 'discord', 'openai', 'anthropic', 'cursor', 'windsurf'] as Platform[]
+  ['microsoft', 'apple', 'discord', 'openai', 'anthropic', 'cursor', 'windsurf', 'kiro'] as Platform[]
 ).map(makeCheck)

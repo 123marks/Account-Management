@@ -13,6 +13,7 @@ export type Platform =
   | 'anthropic'
   | 'cursor'
   | 'windsurf'
+  | 'kiro'
   | 'custom'
 
 export type AccountStatus = 'active' | 'disabled' | 'error'
@@ -377,7 +378,7 @@ export interface Api {
       oauthProvider: 'google' | 'github'
     ): Promise<{ created: AutomationTask[]; errors: string[] }>
     /** Open the account's isolated Chrome profile (headed, with its proxy) for manual use. */
-    launchProfile(accountId: string): Promise<{ ok: boolean; message: string }>
+    launchProfile(accountId: string, url?: string): Promise<{ ok: boolean; message: string }>
     /** Probe the account's effective proxy and return the exit IP. */
     checkProxy(accountId: string): Promise<{ ok: boolean; ip?: string; message: string }>
     /** Export the account profile's cookies as a JSON string. */

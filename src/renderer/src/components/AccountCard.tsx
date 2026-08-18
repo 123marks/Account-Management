@@ -1,5 +1,5 @@
 import React from 'react'
-import { Globe, Inbox, KeyRound, Pencil, Play, RefreshCw, Star, Trash2 } from 'lucide-react'
+import { Globe, Inbox, KeyRound, LogIn, Pencil, Play, RefreshCw, Star, Trash2 } from 'lucide-react'
 import type { Account } from '@shared/types'
 import { accountSubtitle, accountTitle, emailDomain } from '@shared/accountDisplay'
 import { hasQuota, platformMeta } from '@renderer/lib/platforms'
@@ -53,6 +53,7 @@ export interface AccountCardHandlers {
   onEdit: () => void
   onRun: () => void
   onLaunch: () => void
+  onAuthLogin: () => void
   onCopyPassword: () => void
   onCopyTotp: () => void
   onCopyRecovery: () => void
@@ -72,6 +73,7 @@ export function AccountCard({
   onEdit,
   onRun,
   onLaunch,
+  onAuthLogin,
   onCopyPassword,
   onCopyTotp,
   onCopyRecovery,
@@ -90,21 +92,19 @@ export function AccountCard({
       data-state={selected ? 'selected' : undefined}
       className={`${frame} group flex flex-col rounded-xl bg-card p-4 data-[state=selected]:ring-2 data-[state=selected]:ring-primary/40`}
     >
-      <div className="flex items-start gap-2.5">
-        <Checkbox checked={selected} onCheckedChange={onToggleSelect} className="mt-1 shrink-0" />
-        <PlatformGlyph platform={a.platform} size={34} />
+      <div className="flex items-center gap-2.5">
+        <Checkbox checked={selected} onCheckedChange={onToggleSelect} className="shrink-0" />
+        <PlatformGlyph platform={a.platform} size={28} />
         <button className="min-w-0 flex-1 text-left" onClick={onOpenDetail} title="查看详情">
           <div className="flex items-center gap-1.5">
-            <span className="truncate font-medium group-hover:text-primary">{title}</span>
+            <span className="truncate text-sm font-medium group-hover:text-primary">{title}</span>
             <AccountStatusBadge status={a.status} />
             {a.favorite && (
               <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
                 主号
               </Badge>
             )}
-            {running && (
-              <Badge className="h-5 px-1.5 text-[10px]">执行中</Badge>
-            )}
+            {running && <Badge className="h-5 px-1.5 text-[10px]">执行中</Badge>}
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
             <span>{platformMeta(a.platform).label}</span>
@@ -113,8 +113,8 @@ export function AccountCard({
                 {emailDomain(a.email)}
               </Badge>
             )}
+            <span className="truncate">{subtitle}</span>
           </div>
-          <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
         </button>
         <button
           onClick={onToggleFavorite}
@@ -140,12 +140,27 @@ export function AccountCard({
         <div className="mt-3 rounded-lg border bg-secondary/30 px-2.5 py-2">
           <div className="flex items-center justify-between gap-2 text-[11px]">
             <span className="font-medium">{a.quota?.plan || '订阅额度'}</span>
-            <button type="button" className="text-muted-foreground hover:text-foreground" onClick={onRefreshQuota} title="刷新额度">
-              <RefreshCw className="h-3 w-3" />
-            </button>
+            <div className="flex items-center gap-1">
+              {a.quota && a.quota.limit != null && (
+                <span
+                  className={`tabular-nums ${
+                    (a.quota.used ?? 0) / a.quota.limit >= 1 ? 'text-destructive' : 'text-muted-foreground'
+                  }`}
+                >
+                  {Math.round(((a.quota.used ?? 0) / a.quota.limit) * 100)}%
+                </span>
+              )}
+              <button type="button" className="text-muted-foreground hover:text-foreground" onClick={onRefreshQuota} title="刷新额度">
+                <RefreshCw className="h-3 w-3" />
+              </button>
+            </div>
           </div>
           {a.quota?.error ? (
             <p className="mt-1 text-[11px] text-warning">{a.quota.error}</p>
+          ) : a.quota && a.quota.plan && a.quota.limit == null ? (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              已登录{a.quota.resetAt ? ` · 重置 ${new Date(a.quota.resetAt).toLocaleDateString()}` : ''}
+            </p>
           ) : a.quota && a.quota.limit != null ? (
             <>
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -163,7 +178,9 @@ export function AccountCard({
               </div>
             </>
           ) : (
-            <p className="mt-1 text-[11px] text-muted-foreground">点刷新，用该账号已登录的浏览器会话查询官方额度</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              粘贴 Token 后点刷新，或先「官方授权」登录再查额度
+            </p>
           )}
         </div>
       )}
@@ -209,6 +226,9 @@ export function AccountCard({
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" title="运行自动化" onClick={onRun}>
             <Play className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" title="官方授权登录" onClick={onAuthLogin}>
+            <LogIn className="h-3.5 w-3.5" />
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7" title="打开浏览器" onClick={onLaunch}>
             <Globe className="h-3.5 w-3.5" />

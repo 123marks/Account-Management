@@ -6,10 +6,12 @@ import { MAILBOX_KINDS, mailboxKindHelp, suggestMailboxKind, type MailboxKind } 
 import { estimatePasswordStrength, strengthLabel } from '@shared/security'
 import { api } from '@renderer/lib/api'
 import { parseAccountPaste } from '@renderer/lib/accountPaste'
+import { parseTokenText } from '@shared/tokenImport'
+import { officialLoginUrl } from '@shared/officialLogin'
 import { randomIdentity } from '@renderer/lib/identity'
 import { genPassword } from '@renderer/lib/utils'
 import { decodeQrFromFile } from '@renderer/lib/qr'
-import { PLATFORMS } from '@renderer/lib/platforms'
+import { hasQuota, PLATFORMS } from '@renderer/lib/platforms'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { PasswordGeneratorDialog } from '@renderer/components/PasswordGeneratorDialog'
 import { useAccountsStore } from '@renderer/store/accounts'
@@ -204,20 +206,32 @@ export function AccountDialog({
       timezone: input.timezone || '',
       customFields: Object.entries(input.customFields || {}).map(([key, value]) => ({ key, value })),
       tagsText: (input.tags || []).join(', '),
-      mailboxKind: (input.mailboxKind || suggestMailboxKind(input.platform, input.email)) as MailboxKind
+      mailboxKind: (input.mailboxKind || suggestMailboxKind(input.platform, input.email)) as MailboxKind,
+      mailboxClientId: input.mailboxClientId || form.mailboxClientId
     })
   }
 
   const onPasteText = (text: string): void => {
     setPaste(text)
+    const token = parseTokenText(text, form.platform)
+    if (token) {
+      applyParsed(token)
+      return
+    }
     const rows = parseAccountPaste(text)
     if (rows.length === 1) applyParsed(rows[0])
   }
 
   const importPasted = async (): Promise<void> => {
+    const token = parseTokenText(paste, form.platform)
+    if (token) {
+      applyParsed(token)
+      toast.success('已从 JSON / Token 填入，确认后点保存')
+      return
+    }
     const rows = parseAccountPaste(paste)
     if (rows.length === 0) {
-      toast.error('没有解析出账号。支持 ---- / --- / | / 冒号 分隔')
+      toast.error('没有解析出账号。支持 JSON Token、---- / --- / | / 冒号 分隔')
       return
     }
     if (rows.length === 1) {
@@ -275,11 +289,20 @@ export function AccountDialog({
     }
     setSaving(true)
     try {
+      const parsedToken = form.refreshToken ? parseTokenText(form.refreshToken, form.platform) : null
+      const customFields = {
+        ...Object.fromEntries(
+          form.customFields
+            .map((f) => [f.key.trim(), f.value] as const)
+            .filter(([k]) => k.length > 0)
+        ),
+        ...(parsedToken?.customFields || {})
+      }
       const input: AccountInput = {
         platform: form.platform,
         label,
-        username: form.username.trim(),
-        email: form.email.trim(),
+        username: form.username.trim() || parsedToken?.username || '',
+        email: form.email.trim() || parsedToken?.email || '',
         password: form.password || null,
         totpSecret: form.totpSecret || null,
         recoveryEmail: form.recoveryEmail.trim(),
@@ -288,7 +311,7 @@ export function AccountDialog({
           .split('\n')
           .map((x) => x.trim())
           .filter(Boolean),
-        refreshToken: form.refreshToken || null,
+        refreshToken: parsedToken?.refreshToken || form.refreshToken || null,
         groupName: form.groupName.trim(),
         tags: form.tagsText
           .split(',')
@@ -298,16 +321,12 @@ export function AccountDialog({
         userAgent: form.userAgent.trim(),
         locale: form.locale.trim(),
         timezone: form.timezone.trim(),
-        customFields: Object.fromEntries(
-          form.customFields
-            .map((f) => [f.key.trim(), f.value] as const)
-            .filter(([k]) => k.length > 0)
-        ),
+        customFields,
         notes: form.notes,
         status: form.status,
         mailboxKind: form.mailboxKind,
         mailboxAppPassword: form.mailboxAppPassword || null,
-        mailboxClientId: form.mailboxClientId.trim()
+        mailboxClientId: form.mailboxClientId.trim() || parsedToken?.mailboxClientId || ''
       }
       if (account) {
         await update(account.id, input)
@@ -335,9 +354,10 @@ export function AccountDialog({
         <DialogHeader>
           <DialogTitle>{account ? '编辑账号' : '新增账号'}</DialogTitle>
           <DialogDescription>
-            密码、2FA、Token 本地加密。也可直接粘贴
-            <span className="font-mono"> 邮箱----密码----恢复邮箱----2FA----年份----国家 </span>
-            或 <span className="font-mono">邮箱:密码</span> / <span className="font-mono">|</span> 分隔。
+            密码、2FA、Token 本地加密。OpenAI / Claude / Cursor / Windsurf / Kiro 可粘贴官方
+            Token 或 JSON，也可官方网页登录后刷新额度。支持
+            <span className="font-mono"> 邮箱----密码----恢复邮箱----2FA </span>
+            分隔。
           </DialogDescription>
         </DialogHeader>
 
@@ -349,7 +369,7 @@ export function AccountDialog({
                 value={paste}
                 onChange={(e) => onPasteText(e.target.value)}
                 placeholder={
-                  'name@gmail.com----password----recovery@hotmail.com----totpsecret----2024----United States'
+                  'Cursor / Claude / Kiro / Windsurf JSON 或 Token，或\nname@gmail.com----password----recovery@hotmail.com----totpsecret'
                 }
                 className="font-mono text-xs"
                 rows={3}
@@ -609,13 +629,72 @@ export function AccountDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Refresh Token</Label>
+            <Label>
+              {form.platform === 'kiro'
+                ? 'Kiro Token / JSON（refreshToken）'
+                : form.platform === 'cursor'
+                  ? 'Cursor Session Token'
+                  : form.platform === 'anthropic'
+                    ? 'Claude sessionKey / JSON'
+                    : form.platform === 'openai'
+                      ? 'ChatGPT Session Token / Cookie JSON'
+                      : form.platform === 'windsurf'
+                        ? 'Windsurf API Key / JSON'
+                        : 'Refresh Token'}
+            </Label>
             <Textarea
               value={form.refreshToken}
               onChange={(e) => set({ refreshToken: e.target.value })}
+              onPaste={(e) => {
+                const text = e.clipboardData.getData('text')
+                const parsed = parseTokenText(text, form.platform)
+                if (!parsed) return
+                e.preventDefault()
+                applyParsed({ ...parsed, platform: parsed.platform || form.platform })
+                toast.success('已识别 Token / JSON 并填入')
+              }}
+              placeholder={
+                form.platform === 'kiro'
+                  ? '{"refreshToken":"...","clientId":"...","clientSecret":"...","email":"..."}'
+                  : form.platform === 'cursor'
+                    ? 'WorkosCursorSessionToken、userId::JWT，或含 token 的 JSON'
+                    : form.platform === 'anthropic'
+                      ? 'sk-ant-sid01-… 或 {"sessionKey":"...","lastActiveOrg":"..."}'
+                      : form.platform === 'openai'
+                        ? 'ChatGPT session-token，或从浏览器导出的 Cookie JSON'
+                        : form.platform === 'windsurf'
+                          ? 'sk-ws-01-… 或 {"apiKey":"sk-ws-01-..."}'
+                          : ''
+              }
               className="font-mono text-xs"
-              rows={2}
+              rows={3}
             />
+            {account && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  void (async () => {
+                    const r = await api.automation.launchProfile(account.id, officialLoginUrl(form.platform))
+                    if (r.ok) toast.success(r.message)
+                    else toast.error(r.message)
+                  })()
+                }}
+              >
+                官方授权登录
+              </Button>
+            )}
+            {hasQuota(form.platform) && !account && (
+              <p className="text-[11px] text-muted-foreground">
+                保存后可点「官方授权登录」。登录完关掉窗口，再刷新额度会抓会话。
+              </p>
+            )}
+            {hasQuota(form.platform) && account && (
+              <p className="text-[11px] text-muted-foreground">
+                登录完关掉窗口，回到卡片点刷新额度。粘贴的 Token 会写入该账号独立 Chrome。
+              </p>
+            )}
           </div>
 
           <Separator />

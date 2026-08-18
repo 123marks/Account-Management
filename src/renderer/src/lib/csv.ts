@@ -94,6 +94,7 @@ const DOMAIN_PLATFORM: Array<[RegExp, Platform]> = [
   [/claude\.ai|anthropic\.com/i, 'anthropic'],
   [/cursor\.(?:com|so|sh)/i, 'cursor'],
   [/codeium\.com|windsurf/i, 'windsurf'],
+  [/kiro\.dev|kiro/i, 'kiro'],
   [/discord\.(?:com|gg)/i, 'discord'],
   [/icloud\.com|apple\.com/i, 'apple'],
   [/live\.com|outlook\.|office\.com|microsoftonline\.com|microsoft\.com/i, 'microsoft'],

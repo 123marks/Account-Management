@@ -65,7 +65,7 @@ const api: Api = {
     oauthPlatforms: () => ipcRenderer.invoke(IPC.automation.oauthPlatforms),
     registerOauth: (platform, sourceAccountIds, oauthProvider) =>
       ipcRenderer.invoke(IPC.automation.registerOauth, platform, sourceAccountIds, oauthProvider),
-    launchProfile: (accountId) => ipcRenderer.invoke(IPC.automation.launchProfile, accountId),
+    launchProfile: (accountId, url) => ipcRenderer.invoke(IPC.automation.launchProfile, accountId, url),
     checkProxy: (accountId) => ipcRenderer.invoke(IPC.automation.checkProxy, accountId),
     exportCookies: (accountId) => ipcRenderer.invoke(IPC.automation.exportCookies, accountId),
     importCookies: (accountId, json) => ipcRenderer.invoke(IPC.automation.importCookies, accountId, json),

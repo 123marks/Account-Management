@@ -25,3 +25,7 @@ export const PLATFORMS: PlatformMeta[] = [
 export function platformMeta(p: Platform): PlatformMeta {
   return PLATFORMS.find((x) => x.key === p) ?? PLATFORMS[PLATFORMS.length - 1]
 }
+
+export function hasQuota(p: Platform): boolean {
+  return p === 'cursor' || p === 'openai' || p === 'anthropic' || p === 'windsurf'
+}

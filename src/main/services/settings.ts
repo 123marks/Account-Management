@@ -9,7 +9,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   cdpEndpoint: 'http://127.0.0.1:9222',
   language: 'zh',
   theme: 'dark',
-  slowMo: 50
+  slowMo: 50,
+  skipUpdateVersion: ''
 }
 
 export function getSettings(): AppSettings {

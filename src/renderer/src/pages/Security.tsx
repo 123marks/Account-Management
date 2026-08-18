@@ -6,10 +6,11 @@ import { ISSUE_META, strengthLabel } from '@shared/security'
 import { genPassword } from '@renderer/lib/utils'
 import { useSecurityStore } from '@renderer/store/security'
 import { useAccountsStore } from '@renderer/store/accounts'
+import { useTasksStore } from '@renderer/store/tasks'
+import { useAppStore } from '@renderer/store/app'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { ScoreRing } from '@renderer/components/ScoreRing'
 import { AccountDialog } from '@renderer/components/AccountDialog'
-import { RunAutomationDialog } from '@renderer/components/RunAutomationDialog'
 import { Card, CardContent } from '@renderer/components/ui/card'
 import { Badge } from '@renderer/components/ui/badge'
 import { Button } from '@renderer/components/ui/button'
@@ -66,27 +67,63 @@ export default function Security(): React.JSX.Element {
   const accounts = useAccountsStore((s) => s.accounts)
   const loadAccounts = useAccountsStore((s) => s.load)
   const updateAccount = useAccountsStore((s) => s.update)
+  const enqueue = useTasksStore((s) => s.enqueue)
+  const setPage = useAppStore((s) => s.setPage)
 
   const [edit, setEdit] = useState<{ open: boolean; account: Account | null }>({
     open: false,
     account: null
   })
-  const [run, setRun] = useState<{ open: boolean; accounts: Account[] }>({ open: false, accounts: [] })
 
   useEffect(() => {
     void load()
-  }, [load])
+    void loadAccounts()
+  }, [load, loadAccounts])
 
   const accountById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts])
 
   const openEdit = (audit: AccountAudit): void => {
     const acc = accountById.get(audit.accountId)
     if (acc) setEdit({ open: true, account: acc })
+    else toast.error('找不到该账号，请先到账号管理刷新列表')
   }
 
-  const runCheck = (audit: AccountAudit): void => {
-    const acc = accountById.get(audit.accountId)
-    if (acc) setRun({ open: true, accounts: [acc] })
+  const rerunCheckup = async (): Promise<void> => {
+    try {
+      await load()
+      const n = useSecurityStore.getState().report?.accounts.length ?? 0
+      toast.success(`体检完成，共 ${n} 个账号`)
+    } catch (e) {
+      toast.error('体检失败：' + (e as Error).message)
+    }
+  }
+
+  const runLeakCheck = async (): Promise<void> => {
+    try {
+      await checkBreaches()
+      toast.success('泄露检测完成')
+    } catch (e) {
+      toast.error('泄露检测失败：' + (e as Error).message)
+    }
+  }
+
+  const runCheck = async (audit: AccountAudit): Promise<void> => {
+    let acc = accountById.get(audit.accountId)
+    if (!acc) {
+      await loadAccounts()
+      acc = useAccountsStore.getState().accounts.find((x) => x.id === audit.accountId)
+    }
+    if (!acc) {
+      toast.error('找不到该账号，请先到账号管理刷新列表')
+      return
+    }
+    try {
+      await enqueue({ accountIds: [acc.id], type: 'check_login', params: {} })
+      toast.success(`已提交「${acc.label}」登录检测`)
+      setPage('automation')
+    } catch (e) {
+      toast.error('提交失败：' + (e as Error).message)
+    }
   }
 
   const quickFix = async (audit: AccountAudit): Promise<void> => {
@@ -138,10 +175,10 @@ export default function Security(): React.JSX.Element {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            <Button variant="outline" onClick={() => void load()} disabled={loading}>
+            <Button variant="outline" onClick={() => void rerunCheckup()} disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> 重新体检
             </Button>
-            <Button variant="outline" onClick={() => void checkBreaches()} disabled={checkingBreaches}>
+            <Button variant="outline" onClick={() => void runLeakCheck()} disabled={checkingBreaches}>
               <AlertTriangle className={`h-4 w-4 ${checkingBreaches ? 'animate-pulse' : ''}`} />
               {checkingBreaches ? '检测中…' : '泄露检测'}
             </Button>
@@ -220,7 +257,7 @@ export default function Security(): React.JSX.Element {
                     <KeyRound className="h-4 w-4" /> 生成强密码
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={() => runCheck(a)} title="运行登录检测">
+                <Button variant="ghost" size="sm" onClick={() => void runCheck(a)} title="运行登录检测">
                   <Play className="h-4 w-4" /> 检测
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => openEdit(a)}>
@@ -233,11 +270,6 @@ export default function Security(): React.JSX.Element {
       </Card>
 
       <AccountDialog open={edit.open} account={edit.account} onOpenChange={onDialogChange} />
-      <RunAutomationDialog
-        open={run.open}
-        accounts={run.accounts}
-        onOpenChange={(v) => setRun((r) => ({ ...r, open: v }))}
-      />
     </div>
   )
 }

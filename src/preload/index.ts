@@ -69,6 +69,8 @@ const api: Api = {
     checkProxy: (accountId) => ipcRenderer.invoke(IPC.automation.checkProxy, accountId),
     exportCookies: (accountId) => ipcRenderer.invoke(IPC.automation.exportCookies, accountId),
     importCookies: (accountId, json) => ipcRenderer.invoke(IPC.automation.importCookies, accountId, json),
+    refreshQuota: (accountId) => ipcRenderer.invoke(IPC.automation.refreshQuota, accountId),
+    refreshQuotas: (accountIds) => ipcRenderer.invoke(IPC.automation.refreshQuotas, accountIds),
     onTaskUpdated: (cb) => {
       const listener = (_e: IpcRendererEvent, task: AutomationTask): void => cb(task)
       ipcRenderer.on(IPC.automation.taskUpdated, listener)

@@ -18,6 +18,7 @@ import {
 import { resolveProxy, socksAuthUnsupported, SOCKS_AUTH_MESSAGE, probeProxy } from '../automation/proxy'
 import { listTasks, deleteTask, deleteFinishedTasks } from '../db/repositories/tasks'
 import { getAccount, touchLastUsed } from '../db/repositories/accounts'
+import { refreshAccountQuota, refreshAccountQuotas } from '../services/quota'
 import { requireUnlocked } from '../services/lock'
 import { logger } from '../services/logger'
 
@@ -111,4 +112,6 @@ export function registerAutomationIpc(): void {
     const imported = await writeProfileCookies(acc.profileDir, cookies)
     return { imported }
   })
+  ipcMain.handle(IPC.automation.refreshQuota, (_e, accountId: string) => refreshAccountQuota(accountId))
+  ipcMain.handle(IPC.automation.refreshQuotas, (_e, accountIds: string[]) => refreshAccountQuotas(accountIds))
 }

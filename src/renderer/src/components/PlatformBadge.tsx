@@ -12,14 +12,14 @@ export function PlatformGlyph({
   size?: number
 }): React.JSX.Element {
   const brand = BRAND[platform]
+  const inner = Math.round(size * 0.68)
   if (brand) {
-    const pad = Math.round(size * 0.2)
     return (
       <div
-        className="flex items-center justify-center rounded-lg shadow-sm ring-1 ring-black/5"
-        style={{ width: size, height: size, backgroundColor: brand.tile, padding: pad }}
+        className="flex shrink-0 items-center justify-center overflow-hidden rounded-md"
+        style={{ width: size, height: size, backgroundColor: brand.tile }}
       >
-        <svg viewBox="0 0 24 24" width={size - pad * 2} height={size - pad * 2}>
+        <svg viewBox="0 0 24 24" width={inner} height={inner} className="block">
           {brand.node}
         </svg>
       </div>
@@ -29,12 +29,12 @@ export function PlatformGlyph({
   const m = platformMeta(platform)
   return (
     <div
-      className="flex items-center justify-center rounded-lg font-bold text-white shadow-sm"
+      className="flex shrink-0 items-center justify-center overflow-hidden rounded-md font-bold text-white"
       style={{
         width: size,
         height: size,
         backgroundColor: m.color,
-        fontSize: size * (m.letter.length > 1 ? 0.34 : 0.5)
+        fontSize: Math.round(size * (m.letter.length > 1 ? 0.32 : 0.42))
       }}
     >
       {m.letter || m.label.slice(0, 1)}
@@ -52,7 +52,7 @@ export function PlatformBadge({
   const m = platformMeta(platform)
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <PlatformGlyph platform={platform} />
+      <PlatformGlyph platform={platform} size={22} />
       <span className="font-medium">{m.label}</span>
     </div>
   )

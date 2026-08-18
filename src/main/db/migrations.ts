@@ -214,6 +214,10 @@ const MIGRATIONS: Migration[] = [
       ALTER TABLE mailbox_inboxes ADD COLUMN notes TEXT;
       ALTER TABLE mailbox_inboxes ADD COLUMN tags TEXT;
     `
+  },
+  {
+    version: 15,
+    sql: `ALTER TABLE accounts ADD COLUMN quota_json TEXT;`
   }
 ]
 

@@ -1,8 +1,8 @@
 import React from 'react'
-import { Globe, Inbox, KeyRound, Pencil, Play, Star, Trash2 } from 'lucide-react'
+import { Globe, Inbox, KeyRound, Pencil, Play, RefreshCw, Star, Trash2 } from 'lucide-react'
 import type { Account } from '@shared/types'
 import { accountSubtitle, accountTitle, emailDomain } from '@shared/accountDisplay'
-import { platformMeta } from '@renderer/lib/platforms'
+import { hasQuota, platformMeta } from '@renderer/lib/platforms'
 import { relativeTime } from '@renderer/lib/utils'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { AccountStatusBadge } from '@renderer/components/status'
@@ -58,6 +58,7 @@ export interface AccountCardHandlers {
   onCopyRecovery: () => void
   onEditProxy: () => void
   onPeekMail: () => void
+  onRefreshQuota: () => void
   onDelete: () => void
 }
 
@@ -76,6 +77,7 @@ export function AccountCard({
   onCopyRecovery,
   onEditProxy,
   onPeekMail,
+  onRefreshQuota,
   onDelete
 }: { account: Account; running?: boolean } & AccountCardHandlers): React.JSX.Element {
   const a = account
@@ -131,6 +133,38 @@ export function AccountCard({
               {t}
             </Badge>
           ))}
+        </div>
+      )}
+
+      {hasQuota(a.platform) && (
+        <div className="mt-3 rounded-lg border bg-secondary/30 px-2.5 py-2">
+          <div className="flex items-center justify-between gap-2 text-[11px]">
+            <span className="font-medium">{a.quota?.plan || '订阅额度'}</span>
+            <button type="button" className="text-muted-foreground hover:text-foreground" onClick={onRefreshQuota} title="刷新额度">
+              <RefreshCw className="h-3 w-3" />
+            </button>
+          </div>
+          {a.quota?.error ? (
+            <p className="mt-1 text-[11px] text-warning">{a.quota.error}</p>
+          ) : a.quota && a.quota.limit != null ? (
+            <>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full ${
+                    (a.quota.used ?? 0) / a.quota.limit >= 1 ? 'bg-destructive' : 'bg-primary'
+                  }`}
+                  style={{ width: `${Math.min(100, ((a.quota.used ?? 0) / a.quota.limit) * 100)}%` }}
+                />
+              </div>
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                {a.quota.used ?? 0} / {a.quota.limit}
+                {a.quota.unit ? ` ${a.quota.unit}` : ''}
+                {a.quota.resetAt ? ` · 重置 ${new Date(a.quota.resetAt).toLocaleDateString()}` : ''}
+              </div>
+            </>
+          ) : (
+            <p className="mt-1 text-[11px] text-muted-foreground">点刷新，用该账号已登录的浏览器会话查询官方额度</p>
+          )}
         </div>
       )}
 

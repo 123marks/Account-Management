@@ -63,6 +63,8 @@ export const IPC = {
     checkProxy: 'automation:check-proxy',
     exportCookies: 'automation:export-cookies',
     importCookies: 'automation:import-cookies',
+    refreshQuota: 'automation:refresh-quota',
+    refreshQuotas: 'automation:refresh-quotas',
     taskUpdated: 'automation:task-updated'
   },
   logs: {

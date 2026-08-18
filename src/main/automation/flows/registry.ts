@@ -6,6 +6,7 @@ import { xFlows } from './x'
 import { youtubeFlows } from './youtube'
 import { registerFlows } from './register'
 import { oauthRegisterFlows, oauthRegisterablePlatforms } from './oauthRegister'
+import { sessionCheckFlows } from './sessionCheck'
 
 const ALL: Flow[] = [
   ...googleFlows,
@@ -13,7 +14,8 @@ const ALL: Flow[] = [
   ...xFlows,
   ...youtubeFlows,
   ...registerFlows,
-  ...oauthRegisterFlows
+  ...oauthRegisterFlows,
+  ...sessionCheckFlows
 ]
 
 const byKey = new Map<string, Flow>()

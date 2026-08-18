@@ -10,6 +10,7 @@ import { randomIdentity } from '@renderer/lib/identity'
 import { genPassword } from '@renderer/lib/utils'
 import { decodeQrFromFile } from '@renderer/lib/qr'
 import { PLATFORMS } from '@renderer/lib/platforms'
+import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { PasswordGeneratorDialog } from '@renderer/components/PasswordGeneratorDialog'
 import { useAccountsStore } from '@renderer/store/accounts'
 import { Button } from '@renderer/components/ui/button'
@@ -381,8 +382,11 @@ export function AccountDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {PLATFORMS.map((p) => (
-                    <SelectItem key={p.key} value={p.key}>
-                      {p.label}
+                    <SelectItem key={p.key} value={p.key} textValue={p.label}>
+                      <span className="flex items-center gap-2">
+                        <PlatformGlyph platform={p.key} size={16} />
+                        {p.label}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

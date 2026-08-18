@@ -6,11 +6,13 @@ import { encryptField, decryptField } from '../../services/crypto'
 import type {
   Account,
   AccountInput,
+  AccountQuota,
   AccountSecrets,
   AccountStatus,
   PasswordHistoryEntry,
   Platform
 } from '@shared/types'
+import { randomIdentity } from '@shared/identity'
 
 interface AccountRow {
   id: string
@@ -45,6 +47,7 @@ interface AccountRow {
   mailbox_kind?: string | null
   mailbox_pass_enc?: string | null
   mailbox_client_id?: string | null
+  quota_json?: string | null
 }
 
 function safeParseObj(s: string): Record<string, string> {
@@ -62,6 +65,16 @@ function safeParseArr(s: string): string[] {
     return Array.isArray(v) ? v : []
   } catch {
     return []
+  }
+}
+
+function parseQuota(raw: string | null | undefined): AccountQuota | null {
+  if (!raw) return null
+  try {
+    const v = JSON.parse(raw) as AccountQuota
+    return v && typeof v === 'object' ? v : null
+  } catch {
+    return null
   }
 }
 
@@ -101,7 +114,8 @@ function mapRow(r: AccountRow): Account {
     oauthSourceAccountId: r.oauth_source_account_id ?? '',
     mailboxKind: r.mailbox_kind ?? '',
     mailboxClientId: r.mailbox_client_id ?? '',
-    hasMailboxPass: !!r.mailbox_pass_enc
+    hasMailboxPass: !!r.mailbox_pass_enc,
+    quota: parseQuota(r.quota_json)
   }
 }
 
@@ -144,6 +158,7 @@ function buildWrite(input: Partial<AccountInput>): Record<string, unknown> {
   if (input.mailboxKind !== undefined) w.mailbox_kind = input.mailboxKind || null
   if (input.mailboxAppPassword !== undefined) w.mailbox_pass_enc = encryptField(input.mailboxAppPassword)
   if (input.mailboxClientId !== undefined) w.mailbox_client_id = input.mailboxClientId || null
+  if (input.quota !== undefined) w.quota_json = input.quota ? JSON.stringify(input.quota) : null
   return w
 }
 
@@ -162,7 +177,16 @@ export function getAccount(id: string): Account | null {
 export function createAccount(input: AccountInput): Account {
   const id = randomUUID()
   const now = Date.now()
-  const w = buildWrite(input)
+  const ident = input.userAgent?.trim() ? null : randomIdentity()
+  const payload: AccountInput = ident
+    ? {
+        ...input,
+        userAgent: ident.userAgent,
+        locale: input.locale || ident.locale,
+        timezone: input.timezone || ident.timezone
+      }
+    : input
+  const w = buildWrite(payload)
   const record = {
     id,
     platform: (w.platform as string) ?? input.platform ?? 'custom',
@@ -194,7 +218,8 @@ export function createAccount(input: AccountInput): Account {
     oauth_source_account_id: (w.oauth_source_account_id as string | null) ?? null,
     mailbox_kind: (w.mailbox_kind as string | null) ?? null,
     mailbox_pass_enc: (w.mailbox_pass_enc as string | null) ?? null,
-    mailbox_client_id: (w.mailbox_client_id as string | null) ?? null
+    mailbox_client_id: (w.mailbox_client_id as string | null) ?? null,
+    quota_json: (w.quota_json as string | null) ?? null
   }
   getDb()
     .prepare(
@@ -205,7 +230,7 @@ export function createAccount(input: AccountInput): Account {
         user_agent, locale, timezone, notes,
         last_used_at, created_at, updated_at, password_updated_at,
         oauth_provider, oauth_source_account_id,
-        mailbox_kind, mailbox_pass_enc, mailbox_client_id
+        mailbox_kind, mailbox_pass_enc, mailbox_client_id, quota_json
       ) VALUES (
         @id, @platform, @label, @username, @email, @password_enc, @totp_secret_enc,
         @recovery_email, @recovery_phone, @backup_codes_enc, @refresh_token_enc,
@@ -213,7 +238,7 @@ export function createAccount(input: AccountInput): Account {
         @user_agent, @locale, @timezone, @notes,
         @last_used_at, @created_at, @updated_at, @password_updated_at,
         @oauth_provider, @oauth_source_account_id,
-        @mailbox_kind, @mailbox_pass_enc, @mailbox_client_id
+        @mailbox_kind, @mailbox_pass_enc, @mailbox_client_id, @quota_json
       )`
     )
     .run(record)
@@ -388,7 +413,8 @@ export function exportAll(ids?: string[]): string {
     notes: r.notes,
     mailboxKind: r.mailbox_kind ?? '',
     mailboxAppPassword: decryptField(r.mailbox_pass_enc),
-    mailboxClientId: r.mailbox_client_id ?? ''
+    mailboxClientId: r.mailbox_client_id ?? '',
+    quota: parseQuota(r.quota_json)
   }))
   return JSON.stringify({ version: 1, exportedAt: Date.now(), accounts }, null, 2)
 }
@@ -424,7 +450,8 @@ export function importJson(json: string): number {
         notes: a.notes ?? '',
         mailboxKind: a.mailboxKind ?? '',
         mailboxAppPassword: a.mailboxAppPassword ?? null,
-        mailboxClientId: a.mailboxClientId ?? ''
+        mailboxClientId: a.mailboxClientId ?? '',
+        quota: a.quota ?? null
       })
       count++
     }

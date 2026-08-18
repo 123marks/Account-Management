@@ -17,6 +17,7 @@ import {
   Pencil,
   Play,
   Plus,
+  RefreshCw,
   Rocket,
   Search,
   Star,
@@ -87,6 +88,7 @@ export default function Accounts(): React.JSX.Element {
   const remove = useAccountsStore((s) => s.remove)
   const restore = useAccountsStore((s) => s.restore)
   const update = useAccountsStore((s) => s.update)
+  const replace = useAccountsStore((s) => s.replace)
   const openDetail = useAppStore((s) => s.openDetail)
   const registerPrefillInboxIds = useAppStore((s) => s.registerPrefillInboxIds)
   const tasks = useTasksStore((s) => s.tasks)
@@ -262,6 +264,17 @@ export default function Accounts(): React.JSX.Element {
     const r = await api.automation.launchProfile(a.id)
     if (r.ok) toast.success(r.message)
     else toast.error(r.message)
+  }
+
+  const refreshQuota = async (a: Account): Promise<void> => {
+    try {
+      const next = await api.automation.refreshQuota(a.id)
+      replace(next)
+      if (next.quota?.error) toast.error(next.quota.error)
+      else toast.success(next.quota?.plan ? `额度：${next.quota.plan}` : '额度已刷新')
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
   }
 
   const bulkStatus = async (status: AccountStatus): Promise<void> => {
@@ -502,8 +515,11 @@ export default function Accounts(): React.JSX.Element {
           <SelectContent>
             <SelectItem value="all">全部平台</SelectItem>
             {PLATFORMS.map((p) => (
-              <SelectItem key={p.key} value={p.key}>
-                {p.label}
+              <SelectItem key={p.key} value={p.key} textValue={p.label}>
+                <span className="flex items-center gap-2">
+                  <PlatformGlyph platform={p.key} size={16} />
+                  {p.label}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -658,6 +674,32 @@ export default function Accounts(): React.JSX.Element {
           <Button size="sm" variant="outline" onClick={() => void exportSelected()}>
             <Download className="h-4 w-4" /> 导出所选
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              void (async () => {
+                const ids = selectedAccounts
+                  .filter((a) => ['cursor', 'openai', 'anthropic', 'windsurf'].includes(a.platform))
+                  .map((a) => a.id)
+                if (ids.length === 0) {
+                  toast.error('选中的账号没有可查询额度的平台（Cursor / ChatGPT / Claude / Windsurf）')
+                  return
+                }
+                try {
+                  const rows = await api.automation.refreshQuotas(ids)
+                  rows.forEach(replace)
+                  const failed = rows.filter((a) => a.quota?.error).length
+                  if (failed) toast.warning(`已刷新 ${rows.length} 个，其中 ${failed} 个失败（多半还没登录）`)
+                  else toast.success(`已刷新 ${rows.length} 个额度`)
+                } catch (e) {
+                  toast.error((e as Error).message)
+                }
+              })()
+            }}
+          >
+            <RefreshCw className="h-4 w-4" /> 刷新额度
+          </Button>
           <Button size="sm" variant="outline" onClick={() => setBulkEditOpen(true)}>
             <Layers className="h-4 w-4" /> 批量编辑
           </Button>
@@ -726,6 +768,7 @@ export default function Accounts(): React.JSX.Element {
                 }}
                 onEditProxy={() => setDialog({ open: true, account: a })}
                 onPeekMail={() => setMailPeek({ open: true, accountId: a.id })}
+                onRefreshQuota={() => void refreshQuota(a)}
                 onDelete={() => void onDelete(a)}
               />
             ))}

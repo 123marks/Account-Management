@@ -24,6 +24,7 @@ import SettingsPage from '@renderer/pages/Settings'
 import { CommandPalette } from '@renderer/components/CommandPalette'
 import { AccountDetailDrawer } from '@renderer/components/AccountDetailDrawer'
 import { LockOverlay } from '@renderer/components/LockOverlay'
+import { UpdateDialog } from '@renderer/components/UpdateDialog'
 
 export default function App(): React.JSX.Element {
   const page = useAppStore((s) => s.page)
@@ -159,6 +160,7 @@ export default function App(): React.JSX.Element {
       <CommandPalette />
       <AccountDetailDrawer />
       <LockOverlay />
+      <UpdateDialog />
     </TooltipProvider>
   )
 }

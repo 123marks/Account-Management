@@ -53,6 +53,17 @@ export interface Account {
   mailboxKind: string
   mailboxClientId: string
   hasMailboxPass: boolean
+  quota: AccountQuota | null
+}
+
+export interface AccountQuota {
+  plan: string
+  used: number | null
+  limit: number | null
+  unit: string
+  resetAt: number | null
+  error: string
+  fetchedAt: number
 }
 
 /** A previous password (masked preview + timestamp); plaintext fetched on demand. */
@@ -98,6 +109,7 @@ export interface AccountInput {
   mailboxKind?: string
   mailboxAppPassword?: string | null
   mailboxClientId?: string
+  quota?: AccountQuota | null
 }
 
 export type TaskType =
@@ -284,6 +296,7 @@ export interface AppSettings {
   language: 'zh' | 'en'
   theme: 'light' | 'dark' | 'system'
   slowMo: number
+  skipUpdateVersion: string
 }
 
 export interface ChromeInfo {
@@ -371,6 +384,8 @@ export interface Api {
     exportCookies(accountId: string): Promise<string>
     /** Import cookies (Playwright JSON) into the account profile. */
     importCookies(accountId: string, json: string): Promise<{ imported: number }>
+    refreshQuota(accountId: string): Promise<Account>
+    refreshQuotas(accountIds: string[]): Promise<Account[]>
     onTaskUpdated(cb: (task: AutomationTask) => void): () => void
   }
   logs: {

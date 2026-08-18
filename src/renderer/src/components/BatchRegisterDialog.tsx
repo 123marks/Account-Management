@@ -6,6 +6,7 @@ import { emailDomain } from '@shared/accountDisplay'
 import { GENDER_OPTIONS, MONTH_OPTIONS, draftIssues, isGoogleFamily, syncDraftIdentity } from '@shared/registerProfile'
 import { api } from '@renderer/lib/api'
 import { platformMeta } from '@renderer/lib/platforms'
+import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { useAppStore } from '@renderer/store/app'
 import { useAccountsStore } from '@renderer/store/accounts'
 import { Button } from '@renderer/components/ui/button'
@@ -37,7 +38,7 @@ function platformHint(platform: Platform | ''): string {
   }
   if (platform === 'apple') return 'Apple ID 可用任意邮箱，风控强，建议关无头。'
   if (platform === 'x' || platform === 'discord') return '常要求手机号，请先配好接码或准备手动。'
-  return '目标平台和收信邮箱是两回事：平台是要注册的网站，邮箱只负责收验证码。'
+  return '目标平台和收信邮箱是两回事：平台是要注册的网站，邮箱只负责收验证码。邮箱注册很容易触发人机：关无头、用住宅代理、每个账号独立指纹（新建时会自动写入 UA/语言/时区）。'
 }
 
 export function BatchRegisterDialog({
@@ -243,6 +244,10 @@ export function BatchRegisterDialog({
                 <Info className="h-3.5 w-3.5 text-primary" /> 平台 ≠ 邮箱后缀
               </div>
               <p className="text-xs text-muted-foreground">{platformHint(platform)}</p>
+              <p className="mt-2 text-xs text-warning">
+                人机验证多半是出口 IP 和环境不像真人。每个新账号会自动写入独立 UA / 语言 / 时区；请关无头，并在账号里填住宅代理
+                （http / socks5）。不要用机房 IP。
+              </p>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 <span className="rounded bg-primary/15 px-2 py-0.5 text-primary">1 · 选定收信邮箱</span>
                 <ArrowRight className="h-3 w-3 text-muted-foreground" />
@@ -261,8 +266,11 @@ export function BatchRegisterDialog({
                   </SelectTrigger>
                   <SelectContent>
                     {(mode === 'oauth' ? oauthPlatforms : platforms).map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {platformMeta(p).label}
+                      <SelectItem key={p} value={p} textValue={platformMeta(p).label}>
+                        <span className="flex items-center gap-2">
+                          <PlatformGlyph platform={p} size={16} />
+                          {platformMeta(p).label}
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>

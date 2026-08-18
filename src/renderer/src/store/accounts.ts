@@ -8,6 +8,7 @@ interface AccountsState {
   load: () => Promise<void>
   create: (input: AccountInput) => Promise<Account>
   update: (id: string, patch: Partial<AccountInput>) => Promise<Account>
+  replace: (acc: Account) => void
   remove: (id: string) => Promise<void>
   restore: (id: string) => Promise<void>
 }
@@ -32,6 +33,9 @@ export const useAccountsStore = create<AccountsState>((set) => ({
     const acc = await api.accounts.update(id, patch)
     set((s) => ({ accounts: s.accounts.map((a) => (a.id === id ? acc : a)) }))
     return acc
+  },
+  replace: (acc) => {
+    set((s) => ({ accounts: s.accounts.map((a) => (a.id === acc.id ? acc : a)) }))
   },
   remove: async (id) => {
     await api.accounts.remove(id)

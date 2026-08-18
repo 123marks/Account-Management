@@ -100,6 +100,14 @@ export const IPC = {
     install: 'updater:install',
     changed: 'updater:changed'
   },
+  oauth: {
+    start: 'oauth:start',
+    snapshot: 'oauth:snapshot',
+    wait: 'oauth:wait',
+    submitCallback: 'oauth:submit-callback',
+    cancel: 'oauth:cancel',
+    openUrl: 'oauth:open-url'
+  },
   sms: {
     rent: 'sms:rent',
     waitCode: 'sms:wait-code',

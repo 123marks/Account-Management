@@ -77,6 +77,14 @@ const api: Api = {
       return () => ipcRenderer.removeListener(IPC.automation.taskUpdated, listener)
     }
   },
+  oauth: {
+    start: (platform) => ipcRenderer.invoke(IPC.oauth.start, platform),
+    snapshot: (loginId) => ipcRenderer.invoke(IPC.oauth.snapshot, loginId),
+    wait: (loginId) => ipcRenderer.invoke(IPC.oauth.wait, loginId),
+    submitCallback: (loginId, url) => ipcRenderer.invoke(IPC.oauth.submitCallback, loginId, url),
+    cancel: (loginId) => ipcRenderer.invoke(IPC.oauth.cancel, loginId),
+    openUrl: (url) => ipcRenderer.invoke(IPC.oauth.openUrl, url)
+  },
   logs: {
     query: (filter) => ipcRenderer.invoke(IPC.logs.query, filter),
     clear: () => ipcRenderer.invoke(IPC.logs.clear),

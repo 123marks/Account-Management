@@ -67,6 +67,16 @@ export interface AccountQuota {
   fetchedAt: number
 }
 
+/** Official browser OAuth session (Cursor poll / OpenAI·Kiro·Windsurf localhost callback). */
+export interface OfficialOAuthStart {
+  loginId: string
+  platform: Platform
+  authUrl: string
+  expiresIn: number
+  intervalSeconds: number
+  needsCallback: boolean
+}
+
 /** A previous password (masked preview + timestamp); plaintext fetched on demand. */
 export interface PasswordHistoryEntry {
   id: number
@@ -388,6 +398,14 @@ export interface Api {
     refreshQuota(accountId: string): Promise<Account>
     refreshQuotas(accountIds: string[]): Promise<Account[]>
     onTaskUpdated(cb: (task: AutomationTask) => void): () => void
+  }
+  oauth: {
+    start(platform: Platform): Promise<OfficialOAuthStart>
+    snapshot(loginId: string): Promise<OfficialOAuthStart>
+    wait(loginId: string): Promise<AccountInput>
+    submitCallback(loginId: string, url: string): Promise<AccountInput>
+    cancel(loginId?: string): Promise<void>
+    openUrl(url: string): Promise<void>
   }
   logs: {
     query(filter?: LogFilter): Promise<LogEntry[]>

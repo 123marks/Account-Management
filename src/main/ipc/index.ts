@@ -13,10 +13,12 @@ import { registerProvidersIpc } from './providers.ipc'
 import { registerLockIpc } from './lock.ipc'
 import { registerSmsIpc } from './sms.ipc'
 import { registerUpdaterIpc } from './updater.ipc'
+import { registerOAuthIpc } from './oauth.ipc'
 import { setUpdateEmitter } from '../services/updater'
 
 export function registerIpc(getWindow: () => BrowserWindow | null): void {
   registerAccountsIpc()
+  registerOAuthIpc()
   registerTotpIpc()
   registerAutomationIpc()
   registerLogsIpc()

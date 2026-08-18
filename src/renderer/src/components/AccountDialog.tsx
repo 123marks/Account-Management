@@ -1,17 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Copy, Eye, EyeOff, Fingerprint, Inbox, Link2, Plus, QrCode, SlidersHorizontal, Wand2, X } from 'lucide-react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { Copy, Eye, EyeOff, FileKey, FileUp, Fingerprint, Globe, Inbox, Link2, Plus, QrCode, SlidersHorizontal, Wand2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Account, AccountInput, AccountStatus, Platform } from '@shared/types'
 import { MAILBOX_KINDS, mailboxKindHelp, suggestMailboxKind, type MailboxKind } from '@shared/mailboxAccount'
 import { estimatePasswordStrength, strengthLabel } from '@shared/security'
 import { api } from '@renderer/lib/api'
 import { parseAccountPaste } from '@renderer/lib/accountPaste'
-import { parseTokenText } from '@shared/tokenImport'
+import { parseTokenFile, parseTokenText } from '@shared/tokenImport'
 import { officialLoginUrl } from '@shared/officialLogin'
 import { randomIdentity } from '@renderer/lib/identity'
 import { genPassword } from '@renderer/lib/utils'
 import { decodeQrFromFile } from '@renderer/lib/qr'
-import { hasQuota, PLATFORMS } from '@renderer/lib/platforms'
+import { hasQuota, PLATFORMS, platformMeta } from '@renderer/lib/platforms'
+import { OfficialAuthPanel } from '@renderer/components/OfficialAuthPanel'
 import { PlatformGlyph } from '@renderer/components/PlatformBadge'
 import { PasswordGeneratorDialog } from '@renderer/components/PasswordGeneratorDialog'
 import { useAccountsStore } from '@renderer/store/accounts'
@@ -127,9 +128,11 @@ export function AccountDialog({
   const [uri, setUri] = useState('')
   const [saving, setSaving] = useState(false)
   const [genOpen, setGenOpen] = useState(false)
+  const [tab, setTab] = useState<'oauth' | 'token' | 'manual'>('manual')
   const [paste, setPaste] = useState('')
   const [showMailboxPwd, setShowMailboxPwd] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const jsonFileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!open) return
@@ -167,8 +170,32 @@ export function AccountDialog({
       })()
     } else {
       setForm(EMPTY)
+      setTab('manual')
     }
   }, [open, account])
+
+  const oauthReady =
+    !account && (form.platform === 'cursor' || form.platform === 'openai' || form.platform === 'kiro' || form.platform === 'windsurf')
+
+  useEffect(() => {
+    if (!open || account) return
+    setTab(oauthReady ? 'oauth' : hasQuota(form.platform) ? 'token' : 'manual')
+  }, [open, account, form.platform, oauthReady])
+
+  const onOAuthDone = useCallback(
+    (input: AccountInput) => {
+      void (async () => {
+        try {
+          await create(input)
+          toast.success('授权成功，账号已保存')
+          onOpenChange(false)
+        } catch (e) {
+          toast.error((e as Error).message)
+        }
+      })()
+    },
+    [create, onOpenChange]
+  )
 
   useEffect(() => {
     let active = true
@@ -222,32 +249,58 @@ export function AccountDialog({
     if (rows.length === 1) applyParsed(rows[0])
   }
 
-  const importPasted = async (): Promise<void> => {
-    const token = parseTokenText(paste, form.platform)
-    if (token) {
-      applyParsed(token)
-      toast.success('已从 JSON / Token 填入，确认后点保存')
-      return
-    }
-    const rows = parseAccountPaste(paste)
+  const importRows = async (rows: AccountInput[], singleHint: string): Promise<void> => {
     if (rows.length === 0) {
-      toast.error('没有解析出账号。支持 JSON Token、---- / --- / | / 冒号 分隔')
+      toast.error('没有解析出账号')
       return
     }
     if (rows.length === 1) {
       applyParsed(rows[0])
-      toast.success('已填入表单，确认后点保存')
+      toast.success(singleHint)
       return
     }
     setSaving(true)
     try {
       for (const row of rows) await create(row)
-      toast.success(`已快捷导入 ${rows.length} 个账号`)
+      toast.success(`已导入 ${rows.length} 个账号`)
       onOpenChange(false)
     } catch (e) {
       toast.error('导入失败: ' + (e as Error).message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const importPasted = async (): Promise<void> => {
+    const tokens = parseTokenFile(paste, form.platform)
+    if (tokens.length > 0) {
+      await importRows(tokens, '已从 JSON / Token 填入，确认后点保存')
+      return
+    }
+    const rows = parseAccountPaste(paste)
+    if (rows.length === 0) {
+      toast.error('没有解析出账号。支持 JSON Token、.json 文件，或 邮箱----密码----恢复邮箱----2FA')
+      return
+    }
+    await importRows(rows, '已填入表单，确认后点保存')
+  }
+
+  const importJsonFile = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const text = await file.text()
+      setPaste(text)
+      const rows = parseTokenFile(text, form.platform)
+      if (rows.length === 0) {
+        toast.error('无法识别该 JSON 文件。请确认是 Token、会话 JSON，或账号对象数组')
+        return
+      }
+      await importRows(rows, `已从 ${file.name} 填入，确认后点保存`)
+    } catch (err) {
+      toast.error('读取文件失败: ' + (err as Error).message)
+    } finally {
+      if (jsonFileRef.current) jsonFileRef.current.value = ''
     }
   }
 
@@ -281,15 +334,32 @@ export function AccountDialog({
     if (fileRef.current) fileRef.current.value = ''
   }
 
+  const showOAuth = oauthReady && tab === 'oauth'
+  const showToken = !account && hasQuota(form.platform) && tab === 'token'
+  const showManual = Boolean(account) || tab === 'manual' || !hasQuota(form.platform)
+
   const submit = async (): Promise<void> => {
-    const label = form.label.trim() || form.email.trim() || form.username.trim()
+    const pastedTokens = showToken && paste.trim() ? parseTokenFile(paste, form.platform) : []
+    if (pastedTokens.length > 1) {
+      await importRows(pastedTokens, '')
+      return
+    }
+    const parsedToken =
+      pastedTokens[0] || (form.refreshToken ? parseTokenText(form.refreshToken, form.platform) : null)
+    const label =
+      form.label.trim() ||
+      parsedToken?.label ||
+      form.email.trim() ||
+      parsedToken?.email ||
+      form.username.trim() ||
+      parsedToken?.username ||
+      ''
     if (!label) {
-      toast.error('请填写标签名或邮箱')
+      toast.error(showToken ? '请粘贴 Token / JSON，或导入 .json 文件' : '请填写标签名或邮箱')
       return
     }
     setSaving(true)
     try {
-      const parsedToken = form.refreshToken ? parseTokenText(form.refreshToken, form.platform) : null
       const customFields = {
         ...Object.fromEntries(
           form.customFields
@@ -352,35 +422,52 @@ export function AccountDialog({
         onEscapeKeyDown={(e) => genOpen && e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>{account ? '编辑账号' : '新增账号'}</DialogTitle>
+          <DialogTitle>
+            {account
+              ? '编辑账号'
+              : hasQuota(form.platform)
+                ? `添加 ${platformMeta(form.platform).label} 账号`
+                : '新增账号'}
+          </DialogTitle>
           <DialogDescription>
-            密码、2FA、Token 本地加密。OpenAI / Claude / Cursor / Windsurf / Kiro 可粘贴官方
-            Token 或 JSON，也可官方网页登录后刷新额度。支持
-            <span className="font-mono"> 邮箱----密码----恢复邮箱----2FA </span>
-            分隔。
+            {showOAuth
+              ? '打开官方登录页完成授权，成功后自动建号。也可改用 Token / JSON 或手动填写。'
+              : showToken
+                ? '粘贴 Token / 会话 JSON，或直接导入 .json 文件。不需要填密码和 2FA。'
+                : '密码、2FA、Token 本地加密。支持 邮箱----密码----恢复邮箱----2FA 分隔。'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[64vh] space-y-5 overflow-y-auto pr-1">
-          {!account && (
-            <div className="space-y-1.5">
-              <Label>快捷粘贴（一行一个，自动拆分）</Label>
-              <Textarea
-                value={paste}
-                onChange={(e) => onPasteText(e.target.value)}
-                placeholder={
-                  'Cursor / Claude / Kiro / Windsurf JSON 或 Token，或\nname@gmail.com----password----recovery@hotmail.com----totpsecret'
-                }
-                className="font-mono text-xs"
-                rows={3}
-              />
-              <div className="flex justify-end">
-                <Button type="button" size="sm" variant="outline" onClick={() => void importPasted()} disabled={!paste.trim()}>
-                  {parseAccountPaste(paste).length > 1
-                    ? `导入 ${parseAccountPaste(paste).length} 个账号`
-                    : '填入表单'}
-                </Button>
-              </div>
+          {!account && hasQuota(form.platform) && (
+            <div className={`grid gap-1 rounded-lg border bg-secondary/40 p-1 ${oauthReady ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              {oauthReady && (
+                <button
+                  type="button"
+                  className={`rounded-md px-2 py-1.5 text-sm ${tab === 'oauth' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                  onClick={() => setTab('oauth')}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5" /> OAuth 授权
+                  </span>
+                </button>
+              )}
+              <button
+                type="button"
+                className={`rounded-md px-2 py-1.5 text-sm ${tab === 'token' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setTab('token')}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <FileKey className="h-3.5 w-3.5" /> Token / JSON
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`rounded-md px-2 py-1.5 text-sm ${tab === 'manual' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                onClick={() => setTab('manual')}
+              >
+                手动填写
+              </button>
             </div>
           )}
 
@@ -412,21 +499,124 @@ export function AccountDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>状态</Label>
-              <Select value={form.status} onValueChange={(v) => set({ status: v as AccountStatus })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">正常</SelectItem>
-                  <SelectItem value="disabled">停用</SelectItem>
-                  <SelectItem value="error">异常</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {!showOAuth && (
+              <div className="space-y-1.5">
+                <Label>状态</Label>
+                <Select value={form.status} onValueChange={(v) => set({ status: v as AccountStatus })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">正常</SelectItem>
+                    <SelectItem value="disabled">停用</SelectItem>
+                    <SelectItem value="error">异常</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
+          {showOAuth && (
+            <OfficialAuthPanel platform={form.platform} onDone={onOAuthDone} />
+          )}
+
+          {showToken && (
+            <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <Label>Token / JSON</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    粘贴会话 Token、Cookie JSON、或官方导出的账号 JSON。也支持一次导入多个账号的数组。
+                  </p>
+                </div>
+                <Button type="button" size="sm" variant="outline" onClick={() => jsonFileRef.current?.click()}>
+                  <FileUp className="h-3.5 w-3.5" /> 导入 JSON 文件
+                </Button>
+                <input
+                  ref={jsonFileRef}
+                  type="file"
+                  accept=".json,application/json,text/plain"
+                  className="hidden"
+                  onChange={(e) => void importJsonFile(e)}
+                />
+              </div>
+              <Textarea
+                value={paste}
+                onChange={(e) => onPasteText(e.target.value)}
+                placeholder={
+                  form.platform === 'kiro'
+                    ? '{"refreshToken":"...","clientId":"...","email":"..."}'
+                    : form.platform === 'cursor'
+                      ? 'WorkosCursorSessionToken、userId::JWT，或含 token 的 JSON'
+                      : form.platform === 'anthropic'
+                        ? 'sk-ant-sid01-… 或 {"sessionKey":"...","lastActiveOrg":"..."}'
+                        : form.platform === 'openai'
+                          ? 'ChatGPT session-token，或浏览器导出的 Cookie JSON'
+                          : form.platform === 'windsurf'
+                            ? 'sk-ws-01-… 或 {"apiKey":"sk-ws-01-..."}'
+                            : '粘贴 Token 或 JSON'
+                }
+                className="min-h-[160px] font-mono text-xs"
+                rows={8}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>标签名（可选）</Label>
+                  <Input
+                    value={form.label}
+                    onChange={(e) => set({ label: e.target.value })}
+                    placeholder="可留空，默认用邮箱或 Token"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>邮箱（可选）</Label>
+                  <Input
+                    value={form.email}
+                    onChange={(e) => set({ email: e.target.value })}
+                    placeholder="JSON 里有邮箱会自动填"
+                  />
+                </div>
+              </div>
+              {(form.refreshToken || form.email || form.username) && (
+                <p className="text-xs text-muted-foreground">
+                  已识别
+                  {form.email ? ` · ${form.email}` : ''}
+                  {form.username ? ` · ${form.username}` : ''}
+                  {form.refreshToken ? ` · Token ${form.refreshToken.slice(0, 18)}…` : ''}
+                </p>
+              )}
+              <div className="flex justify-end">
+                <Button type="button" size="sm" variant="outline" onClick={() => void importPasted()} disabled={!paste.trim()}>
+                  {parseTokenFile(paste, form.platform).length > 1
+                    ? `导入 ${parseTokenFile(paste, form.platform).length} 个账号`
+                    : '解析并填入'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {showManual && !account && (
+            <div className="space-y-1.5">
+              <Label>快捷粘贴（一行一个，自动拆分）</Label>
+              <Textarea
+                value={paste}
+                onChange={(e) => onPasteText(e.target.value)}
+                placeholder={'name@gmail.com----password----recovery@hotmail.com----totpsecret'}
+                className="font-mono text-xs"
+                rows={3}
+              />
+              <div className="flex justify-end">
+                <Button type="button" size="sm" variant="outline" onClick={() => void importPasted()} disabled={!paste.trim()}>
+                  {parseAccountPaste(paste).length > 1
+                    ? `导入 ${parseAccountPaste(paste).length} 个账号`
+                    : '填入表单'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {showManual && (
+          <>
           <div className="space-y-1.5">
             <Label>标签名</Label>
             <Input
@@ -823,15 +1013,19 @@ export function AccountDialog({
             <Label>备注</Label>
             <Textarea value={form.notes} onChange={(e) => set({ notes: e.target.value })} rows={2} />
           </div>
+          </>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving ? '保存中…' : '保存'}
-          </Button>
+          {!showOAuth && (
+            <Button onClick={submit} disabled={saving}>
+              {saving ? '保存中…' : showToken ? '导入并保存' : '保存'}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

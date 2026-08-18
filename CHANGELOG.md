@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.9
+
+- 添加账号三个页签内容分开：OAuth 只做官方授权；Token / JSON 只粘贴会话或导入 .json 文件；手动填写才是完整表单
+- Token / JSON 支持选择本地 .json 文件，单账号对象或数组都能导入
+- Cursor / OpenAI / Kiro / Windsurf 新增官方 OAuth：生成授权链接、浏览器打开、轮询或本地回调，成功后自动建号（对齐 Cockpit Tools）
+- Cursor 使用 loginDeepControl + api2.cursor.sh/auth/poll；OpenAI 走 Codex PKCE（localhost:1455）；Kiro 走 app.kiro.dev/signin；Windsurf 走 windsurf/signin
+- Cursor 图标改为官方 brand kit 2.5D 立方体；Kiro 改为官方紫色幽灵
+
 ## 0.2.8
 
 - OpenAI / Claude / Cursor / Windsurf 换成官方 Simple Icons 路径；Google 不再套白底大方块；新增 Kiro 平台

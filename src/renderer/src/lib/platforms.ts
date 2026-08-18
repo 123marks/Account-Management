@@ -19,7 +19,7 @@ export const PLATFORMS: PlatformMeta[] = [
   { key: 'anthropic', label: 'Anthropic', color: '#191919', letter: 'A' },
   { key: 'cursor', label: 'Cursor', color: '#141414', letter: 'C' },
   { key: 'windsurf', label: 'Windsurf', color: '#0B100F', letter: 'W' },
-  { key: 'kiro', label: 'Kiro', color: '#FF5C33', letter: 'K' },
+  { key: 'kiro', label: 'Kiro', color: '#9046FF', letter: 'K' },
   { key: 'custom', label: '自定义', color: '#8b5cf6', letter: '★' }
 ]
 

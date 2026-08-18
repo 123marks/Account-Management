@@ -14,7 +14,7 @@ export function PlatformGlyph({
   const brand = BRAND[platform]
   if (brand) {
     const bare = brand.tile === 'transparent'
-    const inner = bare ? size : Math.round(size * 0.86)
+    const inner = bare || brand.flush ? size : Math.round(size * 0.86)
     return (
       <div
         className="flex shrink-0 items-center justify-center overflow-hidden rounded-md"
@@ -24,8 +24,8 @@ export function PlatformGlyph({
           backgroundColor: bare ? 'transparent' : brand.tile
         }}
       >
-        <svg viewBox="0 0 24 24" width={inner} height={inner} className="block">
-          {brand.node}
+        <svg viewBox={brand.viewBox || '0 0 24 24'} width={inner} height={inner} className="block">
+          {React.isValidElement(brand.node) ? React.cloneElement(brand.node) : brand.node}
         </svg>
       </div>
     )

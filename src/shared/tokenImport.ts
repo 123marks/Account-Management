@@ -253,3 +253,29 @@ export function parseTokenText(text: string, hint?: Platform): AccountInput | nu
   }
   return null
 }
+
+/** One or many accounts from a pasted blob or a .json file. */
+export function parseTokenFile(text: string, hint?: Platform): AccountInput[] {
+  const raw = text.trim()
+  if (!raw) return []
+  if (raw.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(raw) as unknown
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const first = parsed[0] as Record<string, unknown> | undefined
+        const looksCookies = !!(first && first.name && first.value != null)
+        if (looksCookies) {
+          const one = parseTokenJson(raw, hint)
+          return one ? [one] : []
+        }
+        return parsed
+          .map((item) => parseTokenText(typeof item === 'string' ? item : JSON.stringify(item), hint))
+          .filter((row): row is AccountInput => !!row)
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  const one = parseTokenText(raw, hint)
+  return one ? [one] : []
+}
